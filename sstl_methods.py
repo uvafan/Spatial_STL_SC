@@ -21,6 +21,7 @@ def sstl_parse_evaluate(requirement):
     # For each predicate, extract the desired dataframe from the SC_Lib graph
         # Pass the desired dataframe into the necessary functions below
         # Evaluate their satisfaction (by t/f, robust, percent, integral)
+    # Combine predicate satisfaction degrees
     # Return desired format of satisfaction measurement
     return;
 
@@ -28,6 +29,8 @@ def sstl_parse_evaluate(requirement):
 Pass in target nodes in an area (graph or set form), iterate over full time frame.
 May be useful to write another function which allows time frame specification within the 
 function itself (as it is currently assumed all times are relevant within the passed dataframe)
+
+** Just added -- sstl_integral with timesets (pass in a set of the target times)
 '''
 def sstl_integral(area, target, operator, threshold):
     if type(area) == sc_lib.graph:
@@ -71,6 +74,48 @@ def sstl_integral(area, target, operator, threshold):
                    integral += abs(threshold - float(row[target]))       
         return integral
     
+    
+def sstl_integral_timeset(area, timeset, target, operator, threshold):
+    if type(area) == sc_lib.graph:
+        nodes = area.nodes
+    else:
+        nodes = area
+    integral = 0.0
+    
+    if operator == "<=":
+        for node in nodes:
+            for index, row in node.data[timeset].iterrows():
+                if float(row[target]) > threshold:
+                   integral += float(row[target]) - threshold   
+        return integral
+    
+    if operator == ">=":
+        for node in nodes:
+            for index, row in node.data[timeset].iterrows():
+                if float(row[target]) < threshold:
+                   integral += threshold - float(row[target])       
+        return integral
+    
+    if operator == "<":
+        for node in nodes:
+            for index, row in node.data[timeset].iterrows():
+                if float(row[target]) >= threshold:
+                   integral += float(row[target]) - threshold   
+        return integral
+
+    if operator == ">":
+        for node in nodes:
+            for index, row in node.data[timeset].iterrows():
+                if float(row[target]) < threshold:
+                   integral += threshold - float(row[target])       
+        return integral
+
+    if operator == "==":
+        for node in nodes:
+            for index, row in node.data[timeset].iterrows():
+                if float(row[target]) < threshold:
+                   integral += abs(threshold - float(row[target]))       
+        return integral
 '''
 Percent satisfaction: gives a float value of satisfied/not satisfied requirements based on 
 each node's true or false value. Eventually and Somewhere unfinished - what would it mean for 
