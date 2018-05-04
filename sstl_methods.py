@@ -15,6 +15,14 @@ Note that always/everywhere and eventually/somewhere share the same code, but as
 different dataframes are passed in (containing temporal versus spatial data, respectively).
 '''
 
+def sstl_parse_evaluate(requirement):
+    # Interpret text of requirement, convert to SSTL logic
+    # Break up logic into basic predicates (if compound/complex)
+    # For each predicate, extract the desired dataframe from the SC_Lib graph
+        # Pass the desired dataframe into the necessary functions below
+        # Evaluate their satisfaction (by t/f, robust, percent, integral)
+    # Return desired format of satisfaction measurement
+    return;
 
 '''
 Pass in target nodes in an area (graph or set form), iterate over full time frame.
