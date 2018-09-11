@@ -115,7 +115,7 @@ class graph:
     Returns a set of nodes which sit between i and j (inclusive) connections away from 
         the given start node. Assumes the graph preserves direction.
     '''
-    def bfs_set(self, start, i, j):
+    def bfs_set(self, start, i, j, directed=True):
         visited = set([])
         q = queue.Queue()
         q.put(start)
@@ -124,39 +124,19 @@ class graph:
         distance_dict[start.intersections] = 0
         requested_nodes = set([])
         while q.not_empty:
-           v = q.get()
-           for successor in v.successors:
-               if successor not in visited:
-                  q.put(successor)
-                  distance_dict[successor.intersections] = distance_dict[v.intersections] + 1
-                  if distance_dict[successor.intersections] > j+1:
-                      return requested_nodes
-                  if distance_dict[successor.intersections] >= i and distance_dict[successor.intersections] <= j:
-                      requested_nodes.add(successor)
-           visited.add(v)
-               
-    '''
-    Same as above, though without direction.
-    '''
-    def undirected_bfs_set(self, start, i, j):      
-        visited = set([])
-        q = queue.Queue()
-        q.put(start)
-        visited.add(start)
-        distance_dict = {}
-        distance_dict[start.intersections] = 0
-        requested_nodes = set([])
-        while q.not_empty:
-           v = q.get()
-           for successor in v.successors.union(v.predecessors):
-               if successor not in visited:
-                  q.put(successor)
-                  distance_dict[successor.intersections] = distance_dict[v.intersections] + 1
-                  if distance_dict[successor.intersections] > j+1:
-                      return requested_nodes
-                  if distance_dict[successor.intersections] >= i and distance_dict[successor.intersections] <= j:
-                      requested_nodes.add(successor)
-           visited.add(v)
+            v = q.get()
+            neighbors = v.successors
+            if not directed:
+                neighbors = neighbors.union(v.predecessors)
+            for successor in neighbors:
+                if successor not in visited:
+                   q.put(successor)
+                   distance_dict[successor.intersections] = distance_dict[v.intersections] + 1
+                   if distance_dict[successor.intersections] > j+1:
+                       return requested_nodes
+                   if distance_dict[successor.intersections] >= i and distance_dict[successor.intersections] <= j:
+                       requested_nodes.add(successor)
+            visited.add(v)
     
     '''
     Returns a set of nodes which sit within a polygon, given a set of boundary nodes.
@@ -179,9 +159,3 @@ class graph:
     def a_node(self):
         return self.node_intersections_dict[list(self.node_intersections_dict.keys())[0]]
     
-
-    
-
-
-
-        

@@ -16,12 +16,12 @@ ox.plot.plot_graph(G)
 
 
 graph = sc_methods.graph_from_OSMnx(G)
-sc_plot.sc_plot_directed(graph)
+sc_plot.sc_plot(graph)
 for node in graph.nodes:
     satisf = random.randint(0,2)
     if satisf == 0:
         node.tf_satisfied = False
-sc_plot.sc_plot_directed(graph)
+sc_plot.sc_plot(graph)
 
 
 file = "NYC_Traffic_Sample"

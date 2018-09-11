@@ -16,7 +16,7 @@ Loads in nodes according to their middle coorinates, edges connecting those coor
     Green is used to represent nodes (using the tf_satisfied attribute of the node)
     which are satisfied, and red to represent those unsatisfied.
 '''
-def sc_plot_directed(graph): 
+def sc_plot(graph,directed=True): 
     satisfied_plot_nodes = []
     unsatisfied_plot_nodes = []
     for item in graph.nodes:
@@ -34,7 +34,10 @@ def sc_plot_directed(graph):
 
     plot_edges = []
     for item in graph.nodes:
-        for successor in item.successors:
+        neighbors = item.successors
+        if not directed:
+            neighbors = neighbors.union(item.predecessors)
+        for successor in neighbors:
             plot_edges.append({'start_lon':item.middle_coordinate['x'], 'end_lon':successor.middle_coordinate['x'],
                                'start_lat':item.middle_coordinate['y'], 'end_lat':successor.middle_coordinate['y'],
                                'satisfied':item.tf_satisfied})
@@ -58,50 +61,6 @@ def sc_plot_directed(graph):
     if not unsatisfied_df_nodes.empty:
         geoplotlib.dot(unsatisfied_df_nodes)
     geoplotlib.show()
-    
-def sc_plot_undirected(graph):
-    satisfied_plot_nodes = []
-    unsatisfied_plot_nodes = []
-    for item in graph.nodes:
-        item.middle_coordinate['x'] = ((graph.edge_dict[item.intersections[0]].coordinates['x'] + 
-                                  graph.edge_dict[item.intersections[1]].coordinates['x'])/2.0)
-        item.middle_coordinate['y'] = ((graph.edge_dict[item.intersections[0]].coordinates['y'] +
-                              graph.edge_dict[item.intersections[0]].coordinates['y'])/2.0)
-        
-        if item.tf_satisfied: satisfied_plot_nodes.append({'Identifier': item.identifier, 'lon': item.middle_coordinate['x'], 
-                           'lat': item.middle_coordinate['y']})
-        else: unsatisfied_plot_nodes.append({'Identifier': item.identifier, 'lon': item.middle_coordinate['x'], 
-                           'lat': item.middle_coordinate['y']})
-    satisfied_df_nodes = pd.DataFrame(satisfied_plot_nodes)
-    unsatisfied_df_nodes = pd.DataFrame(unsatisfied_plot_nodes)
-    
-    plot_edges = []
-    for item in graph.nodes:
-        for successor in item.successors:
-            plot_edges.append({'start_lon':item.middle_coordinate['x'], 'end_lon':successor.middle_coordinate['x'],
-                               'start_lat':item.middle_coordinate['y'], 'end_lat':successor.middle_coordinate['y'],
-                               'satisfied':item.tf_satisfied})
-        for predecessor in item.predecessors:
-            plot_edges.append({'start_lon':item.middle_coordinate['x'], 'end_lon':predecessor.middle_coordinate['x'],
-                               'start_lat':item.middle_coordinate['y'], 'end_lat':predecessor.middle_coordinate['y'],
-                               'satisfied':item.tf_satisfied})
-    df_edges = pd.DataFrame(plot_edges)
-    
-    geoplotlib.graph(df_edges,
-                     src_lat='start_lat',
-                     src_lon='start_lon',
-                     dest_lat='end_lat',
-                     dest_lon='end_lon',
-                     color='Dark2',
-                     alpha=30,
-                     linewidth=3)
-    geoplotlib.dot(satisfied_df_nodes, 
-                   color=[0,0,0,255]
-                   )
-    
-    if not unsatisfied_df_nodes.empty:
-        geoplotlib.dot(unsatisfied_df_nodes)
-    geoplotlib.show()
 
 '''
 # SAMPLE
@@ -111,5 +70,5 @@ for node in graph.nodes:
     tell = random.randint(0,2)
     if tell == 0:
         node.tf_satisfied = False
-sc_plot_directed(graph)
+sc_plot(graph)
 '''
