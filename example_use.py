@@ -41,7 +41,6 @@ tf = sstl_methods.tf_everywhere(graph.dataframe, '6:00-7:00AM', '<=', 300)
 robust = sstl_methods.robust_everywhere(graph.dataframe, '6:00-7:00AM', '<=', 300)
 percent = sstl_methods.percent_everywhere(graph.dataframe, '6:00-7:00AM', '<=', 300)
 integral = sstl_methods.sstl_integral_timeset(graph, ['6:00-7:00AM', '7:00-8:00AM'], '<=', 600)
-'''
 
 
 
