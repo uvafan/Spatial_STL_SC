@@ -144,8 +144,11 @@ class graph:
     '''         
     def nodes_in_polygon(self, nodes):
         tuples = []
-        for node in nodes:
-            tuples.append((node.middle_coordinate['x'], node.middle_coordinate['y']))
+        if isinstance(next(iter(nodes)),tuple):
+            tuples = list(nodes) 
+        else:
+            for node in nodes:
+                tuples.append((node.middle_coordinate['x'], node.middle_coordinate['y']))
         poly = MultiPoint(tuples).convex_hull
         contained_nodes = set([])
         for node in self.nodes:
