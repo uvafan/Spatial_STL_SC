@@ -14,7 +14,6 @@ import random
 G = ox.graph_from_point((40.758896, -73.985130), distance=500)
 ox.plot.plot_graph(G)
 
-
 graph = sc_methods.graph_from_OSMnx(G)
 sc_plot.sc_plot(graph)
 for node in graph.nodes:
@@ -42,7 +41,7 @@ tf = sstl_methods.tf_everywhere(graph.dataframe, '6:00-7:00AM', '<=', 300)
 robust = sstl_methods.robust_everywhere(graph.dataframe, '6:00-7:00AM', '<=', 300)
 percent = sstl_methods.percent_everywhere(graph.dataframe, '6:00-7:00AM', '<=', 300)
 integral = sstl_methods.sstl_integral_timeset(graph, ['6:00-7:00AM', '7:00-8:00AM'], '<=', 600)
-
+'''
 
 
 

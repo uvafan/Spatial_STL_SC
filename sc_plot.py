@@ -20,11 +20,12 @@ def sc_plot(graph,directed=True):
     satisfied_plot_nodes = []
     unsatisfied_plot_nodes = []
     for item in graph.nodes:
+        '''
         item.middle_coordinate['x'] = ((graph.edge_dict[item.intersections[0]].coordinates['x'] + 
                                   graph.edge_dict[item.intersections[1]].coordinates['x'])/2.0)
         item.middle_coordinate['y'] = ((graph.edge_dict[item.intersections[0]].coordinates['y'] +
                               graph.edge_dict[item.intersections[0]].coordinates['y'])/2.0)
-        
+        '''
         if item.tf_satisfied: satisfied_plot_nodes.append({'Identifier': item.identifier, 'lon': item.middle_coordinate['x'], 
                            'lat': item.middle_coordinate['y']})
         else: unsatisfied_plot_nodes.append({'Identifier': item.identifier, 'lon': item.middle_coordinate['x'], 

@@ -41,17 +41,17 @@ def graph_from_OSMnx(graph):
             node.lanes = item[2]['lanes']
         if 'oneway' in item[2].keys():
             node.oneway = item[2]['oneway']        
-            ''' SAMPLE ADDITION TO ATTRIVUTE DICTIONARY:
+            ''' SAMPLE ADDITION TO ATTRIBUTE DICTIONARY:
             if 'oneway' not in g.attribute_set.keys():
                 g.attribute_set['oneway'] = {node}
             else:
                 g.attribute_set['oneway'].add(node)
             '''
-            
-        node.middle_coordinate['x'] = ((g.edge_dict[node.intersections[0]].coordinates['x'] + 
-                              g.edge_dict[node.intersections[1]].coordinates['x'])/2.0)
-        node.middle_coordinate['y'] = ((g.edge_dict[node.intersections[0]].coordinates['y'] +
-                          g.edge_dict[node.intersections[0]].coordinates['y'])/2.0)
+        
+        intersection0Coords = g.edge_dict[node.intersections[0]].coordinates 
+        intersection1Coords = g.edge_dict[node.intersections[1]].coordinates 
+        node.middle_coordinate['x'] = (intersection0Coords['x'] + intersection1Coords['x'])/2.0
+        node.middle_coordinate['y'] = (intersection0Coords['y'] + intersection1Coords['y'])/2.0
         g.nodes.add(node)  
         g.node_intersections_dict[node.intersections] = node
     
@@ -62,7 +62,7 @@ def graph_from_OSMnx(graph):
                 node.add_successor(g.node_intersections_dict[(edge[0], edge[1])])
             if node.intersections[0] == edge[1]:
                 node.add_predecessor(g.node_intersections_dict[(edge[0], edge[1])])
-    return g;
+    return g
 
 '''
 To be improved/ modified based upon what useful information is available.
