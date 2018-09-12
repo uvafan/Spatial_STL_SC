@@ -1,5 +1,5 @@
 '''
-Meiyi Ma, Timothy Davison
+Meiyi Ma, Timothy Davison, Eli Lifland
 STL for Smart Cities
 Object Library: Node, Edge, Graph
 

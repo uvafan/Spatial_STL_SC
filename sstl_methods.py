@@ -1,6 +1,6 @@
 '''
-Timothy Davison
-4/25/18
+Timothy Davison, Eli Lifland
+9/11/18
 Preliminary Model Checking Functions
 '''
 import sc_lib

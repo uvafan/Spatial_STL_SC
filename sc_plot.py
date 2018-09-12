@@ -1,6 +1,6 @@
 '''
-Meiyi Ma, Timothy Davison.
-4/28/18
+Meiyi Ma, Timothy Davison, Eli Lifland
+9/11/18
 Two methods for plotting a SC graph using the library geoplotlib.
 Includes a sample plot.
 '''

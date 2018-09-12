@@ -8,4 +8,4 @@ Required packages:
 
 
 This project is in progress under the supervision of Professors Lu Feng and John Stankovic at the University of Virginia, with 
-direction from PhD candidate Meiyi Ma and assistance from undergraduate researcher Timothy Davison.
+direction from PhD candidate Meiyi Ma and assistance from undergraduate researchers Eli Lifland and Timothy Davison.

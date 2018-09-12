@@ -1,6 +1,6 @@
 '''
-Meiyi Ma, TImothy Davison
-4/15/18
+Meiyi Ma, Timothy Davison, Eli Lifland
+9/11/18
 A short library of useful methods to supplement sc_lib.
 '''
 
