@@ -23,8 +23,8 @@ for node in graph.nodes:
 sc_plot.sc_plot(graph)
 
 
-file = "NYC_Traffic_Sample"
-sc_methods.load_nyc_data(graph, file)
+fin = "NYC_Traffic_Sample"
+sc_methods.load_nyc_data(graph, fin)
 
 
 sample_node = graph.a_node()
