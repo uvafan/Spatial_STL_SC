@@ -3,8 +3,7 @@ Meiyi Ma, Timothy Davison, Eli Lifland
 9/11/18
 A short library of useful methods to supplement sc_lib.
 '''
-
-
+import performance
 import sc_lib
 import pandas as pd
 import numpy
@@ -118,10 +117,12 @@ def load_nyc_data(graph, file):
     graph.dataframe = pd.concat(graph.dataframe)
 
 def load_chicago_data(path, abridged=False):
+    perf = performance.performance_tester()
     data_filename = 'data.csv' if not abridged else 'abridged_data.csv'
     node_df = pd.read_csv(path+'nodes.csv')
     data_df = pd.read_csv(path+data_filename)
     graph = sc_lib.chicago_graph()
+    perf.checkpoint('created graph')
     
     for index, row in node_df.iterrows():
         node = graph.get_node(row['node_id'])
@@ -129,12 +130,16 @@ def load_chicago_data(path, abridged=False):
             node = sc_lib.chicago_node(row['node_id'],(row['lat'],row['lon']))
             graph.add_node(node)
     
+    perf.checkpoint('processed node df')
+
     for index, row in data_df.iterrows():
         node = graph.get_node(row['node_id'])
         if not node:
             continue
         node.add_data_point(row['timestamp'],row['parameter'],row['value_raw'],row['value_hrf'])
     
+    perf.checkpoint('processed data df')
+
     return graph 
 
 '''

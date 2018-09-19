@@ -10,6 +10,29 @@ import sc_methods
 import geoplotlib
 import random
 
+
+def chicago_plot(graph,directed=True): 
+    satisfied_plot_nodes = []
+    unsatisfied_plot_nodes = []
+    for node in graph.nodes:
+        node_info = {'ID':node.ID, 'lon':node.coordinates[1], 'lat':node.coordinates[0]}
+        if node.tf_satisfied: 
+            satisfied_plot_nodes.append(node_info)
+        else: 
+            unsatisfied_plot_nodes.append(node_info)
+    satisfied_df_nodes = pd.DataFrame(satisfied_plot_nodes)
+    unsatisfied_df_nodes = pd.DataFrame(unsatisfied_plot_nodes)
+
+    if not satisfied_df_nodes.empty:
+        geoplotlib.dot(satisfied_df_nodes, 
+                   color=[0,255,0,255]
+                   )
+    
+    if not unsatisfied_df_nodes.empty:
+        geoplotlib.dot(unsatisfied_df_nodes)
+    
+    geoplotlib.show()
+
 '''
 Loads in nodes according to their middle coorinates, edges connecting those coordinates
     to a pandas dataframe. That dataframe is passed to/ plotted with geoplotlib.
