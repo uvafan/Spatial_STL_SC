@@ -53,7 +53,7 @@ def sc_plot(graph,directed=True):
                      alpha=30,
                      linewidth=3)
     # color=[0,0,255,255] sets blue, color default is red
-    # [0,0,0,255] is black, [0,255,255,255] is green
+    # [0,0,0,255] is black, [0,255,0,255] is green
     if not satisfied_df_nodes.empty:
         geoplotlib.dot(satisfied_df_nodes, 
                    color=[0,255,0,255]

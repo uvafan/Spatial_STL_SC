@@ -7,6 +7,7 @@ A short library of useful methods to supplement sc_lib.
 
 import sc_lib
 import pandas as pd
+import numpy
 import math
 import osmnx as ox
 
@@ -115,6 +116,26 @@ def load_nyc_data(graph, file):
         node.data = pd.DataFrame(node.data, columns=cols)
         graph.dataframe.append(node.data)    
     graph.dataframe = pd.concat(graph.dataframe)
+
+def load_chicago_data(path, abridged=False):
+    data_filename = 'data.csv' if not abridged else 'abridged_data.csv'
+    node_df = pd.read_csv(path+'nodes.csv')
+    data_df = pd.read_csv(path+data_filename)
+    graph = sc_lib.chicago_graph()
+    
+    for index, row in node_df.iterrows():
+        node = graph.get_node(row['node_id'])
+        if not node:
+            node = sc_lib.chicago_node(row['node_id'],(row['lat'],row['lon']))
+            graph.add_node(node)
+    
+    for index, row in data_df.iterrows():
+        node = graph.get_node(row['node_id'])
+        if not node:
+            continue
+        node.add_data_point(row['timestamp'],row['parameter'],row['value_raw'],row['value_hrf'])
+    
+    return graph 
 
 '''
 Returns a set of nodes which lie within a Euclidian distance from a provided center point.

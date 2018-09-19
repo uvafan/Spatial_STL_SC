@@ -5,9 +5,55 @@ Object Library: Node, Edge, Graph
 
 '''
 import queue
+import pandas as pd
+import numpy as np
+from datetime import datetime
 from shapely.geometry import Point
 from shapely.geometry import MultiPoint
 
+
+class chicago_node:
+
+    def __init__(self, ID, coordinates):
+        self.ID = ID
+        self.coordinates = coordinates #(lat,lon)
+        self.df = pd.DataFrame() #time series sensor data
+        self.tf_satisfied = True
+
+    def add_data_point(self, time, param, raw_val, hrf_val):
+        if param+'_raw' not in self.df.columns:
+            self.df[param+'_raw'] = np.nan
+            self.df[param+'_hrf'] = np.nan
+        dt = pd.to_datetime(time)
+        if raw_val != 'NA':
+            try:
+                self.df.at[dt,param+'_raw'] = raw_val
+            except ValueError:
+                pass
+                #TODO: deal with non floats 
+        if hrf_val != 'NA':
+            try:
+                self.df.at[dt,param+'_hrf'] = hrf_val
+            except ValueError:
+                pass
+
+class chicago_graph:
+    
+    def __init__(self):
+        self.nodes = set()
+        self.nodesByID = dict()
+
+    def add_node(self, node):
+        self.nodes.add(node)
+        self.nodesByID[node.ID] = node
+
+    def get_node(self, ID):
+        if ID not in self.nodesByID:
+            return None
+        return self.nodesByID[ID]
+
+    def a_node(self):
+        return next(iter(self.nodes))
 
 ''' 
 Streets will be saved as nodes.
