@@ -121,9 +121,15 @@ def load_chicago_data(path, abridged=False):
     data_filename = 'data.csv' if not abridged else 'abridged_data.csv'
     node_df = pd.read_csv(path+'nodes.csv')
     data_df = pd.read_csv(path+data_filename)
-    graph = sc_lib.chicago_graph()
-    perf.checkpoint('created graph')
+    perf.checkpoint('loaded data_df')
+
+    data_df['timestamp'] = pd.to_datetime(data_df['timestamp'])
+    data_df = data_df.set_index('timestamp')
+    perf.checkpoint('processed data_df')
     
+    graph = sc_lib.chicago_graph(data_df)
+    perf.checkpoint('created graph')
+     
     for index, row in node_df.iterrows():
         node = graph.get_node(row['node_id'])
         if not node:
@@ -131,14 +137,6 @@ def load_chicago_data(path, abridged=False):
             graph.add_node(node)
     
     perf.checkpoint('processed node df')
-
-    for index, row in data_df.iterrows():
-        node = graph.get_node(row['node_id'])
-        if not node:
-            continue
-        node.add_data_point(row['timestamp'],row['parameter'],row['value_raw'],row['value_hrf'])
-    
-    perf.checkpoint('processed data df')
 
     return graph 
 

@@ -17,31 +17,18 @@ class chicago_node:
     def __init__(self, ID, coordinates):
         self.ID = ID
         self.coordinates = coordinates #(lat,lon)
-        self.df = pd.DataFrame() #time series sensor data
-        self.tf_satisfied = True
+        self.tf_satisfied = True # whether req is satisfied
+        self.tags = set()
 
-    def add_data_point(self, time, param, raw_val, hrf_val):
-        if param+'_raw' not in self.df.columns:
-            self.df[param+'_raw'] = np.nan
-            self.df[param+'_hrf'] = np.nan
-        dt = pd.to_datetime(time)
-        if raw_val != 'NA':
-            try:
-                self.df.at[dt,param+'_raw'] = raw_val
-            except ValueError:
-                pass
-                #TODO: deal with non floats 
-        if hrf_val != 'NA':
-            try:
-                self.df.at[dt,param+'_hrf'] = hrf_val
-            except ValueError:
-                pass
+    def __str__(self):
+        return 'ID: {} Coordinates: {}'.format(self.ID,self.coordinates)
 
 class chicago_graph:
     
-    def __init__(self):
+    def __init__(self, df):
         self.nodes = set()
         self.nodesByID = dict()
+        self.df = df
 
     def add_node(self, node):
         self.nodes.add(node)
@@ -54,6 +41,9 @@ class chicago_graph:
 
     def a_node(self):
         return next(iter(self.nodes))
+
+    def __str__(self):
+        return str(self.df.head(5))
 
 ''' 
 Streets will be saved as nodes.

@@ -11,9 +11,9 @@ import random
 
 
 path = "chicago-complete.daily.2018-09-08/"
-graph = sc_methods.load_chicago_data(path,abridged=True)
-sample_node = graph.a_node()
-print(sample_node.df.head())
+graph = sc_methods.load_chicago_data(path)
+print(graph)
+print(graph.a_node())
 sc_plot.chicago_plot(graph)
 
 '''
