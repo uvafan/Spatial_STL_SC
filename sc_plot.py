@@ -11,7 +11,13 @@ import geoplotlib
 import random
 
 
-def chicago_plot(graph,directed=True): 
+'''
+Loads in nodes according to their coordinates, edges connecting those coordinates
+    to a pandas dataframe. That dataframe is passed to/ plotted with geoplotlib.
+    Green is used to represent nodes (using the tf_satisfied attribute of the node)
+    which are satisfied, and red to represent those unsatisfied.
+'''
+def plot(graph,directed=True): 
     satisfied_plot_nodes = []
     unsatisfied_plot_nodes = []
     for node in graph.nodes:
@@ -22,7 +28,25 @@ def chicago_plot(graph,directed=True):
             unsatisfied_plot_nodes.append(node_info)
     satisfied_df_nodes = pd.DataFrame(satisfied_plot_nodes)
     unsatisfied_df_nodes = pd.DataFrame(unsatisfied_plot_nodes)
-
+    plot_edges = []
+    for node in graph.nodes:
+        neighbors = node.successors
+        if not directed:
+            neighbors = neighbors.union(node.predecessors)
+        for successor in neighbors:
+            plot_edges.append({'start_lon':node.coordinates[1], 'end_lon':successor.coordinates[1],
+                               'start_lat':node.coordinates[0], 'end_lat':successor.coordinates[0]})
+    df_edges = pd.DataFrame(plot_edges)
+    
+    geoplotlib.graph(df_edges,
+                     src_lat='start_lat',
+                     src_lon='start_lon',
+                     dest_lat='end_lat',
+                     dest_lon='end_lon',
+                     color='Dark2',
+                     alpha=30,
+                     linewidth=3)
+    
     if not satisfied_df_nodes.empty:
         geoplotlib.dot(satisfied_df_nodes, 
                    color=[0,255,0,255]
@@ -33,22 +57,10 @@ def chicago_plot(graph,directed=True):
     
     geoplotlib.show()
 
-'''
-Loads in nodes according to their middle coorinates, edges connecting those coordinates
-    to a pandas dataframe. That dataframe is passed to/ plotted with geoplotlib.
-    Green is used to represent nodes (using the tf_satisfied attribute of the node)
-    which are satisfied, and red to represent those unsatisfied.
-'''
 def sc_plot(graph,directed=True): 
     satisfied_plot_nodes = []
     unsatisfied_plot_nodes = []
     for item in graph.nodes:
-        '''
-        item.middle_coordinate['x'] = ((graph.edge_dict[item.intersections[0]].coordinates['x'] + 
-                                  graph.edge_dict[item.intersections[1]].coordinates['x'])/2.0)
-        item.middle_coordinate['y'] = ((graph.edge_dict[item.intersections[0]].coordinates['y'] +
-                              graph.edge_dict[item.intersections[0]].coordinates['y'])/2.0)
-        '''
         if item.tf_satisfied: satisfied_plot_nodes.append({'Identifier': item.identifier, 'lon': item.middle_coordinate['x'], 
                            'lat': item.middle_coordinate['y']})
         else: unsatisfied_plot_nodes.append({'Identifier': item.identifier, 'lon': item.middle_coordinate['x'], 

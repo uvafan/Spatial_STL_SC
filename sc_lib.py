@@ -2,7 +2,6 @@
 Meiyi Ma, Timothy Davison, Eli Lifland
 STL for Smart Cities
 Object Library: Node, Edge, Graph
-
 '''
 import queue
 import pandas as pd
@@ -11,33 +10,42 @@ from datetime import datetime
 from shapely.geometry import Point
 from shapely.geometry import MultiPoint
 
-
-class chicago_node:
-
+class node:
     def __init__(self, ID, coordinates):
         self.ID = ID
         self.coordinates = coordinates #(lat,lon)
         self.tf_satisfied = True # whether req is satisfied
         self.tags = set()
+        self.predecessors = set([]) 
+        self.successors = set([])
 
     def __str__(self):
         return 'ID: {} Coordinates: {}'.format(self.ID,self.coordinates)
 
-class chicago_graph:
+    def add_successor(self, node):
+        self.successors.add(node)
+        
+    def add_predecessor(self, node):
+        self.predecessors.add(node)
+   
+class edge:
+    def __init__(self, ID, coordinates):
+        self.ID = ID
+        self.coordinates = coordinates    
     
-    def __init__(self, df):
+class graph:
+    def __init__(self):
         self.nodes = set()
-        self.nodesByID = dict()
-        self.df = df
+        self.edges = set()
+        self.edge_dict = dict()
+        self.df = pd.DataFrame() 
+
+    def add_edge(self,edge):
+        self.edges.add(edge)
+        self.edge_dict[edge.ID] = edge
 
     def add_node(self, node):
         self.nodes.add(node)
-        self.nodesByID[node.ID] = node
-
-    def get_node(self, ID):
-        if ID not in self.nodesByID:
-            return None
-        return self.nodesByID[ID]
 
     def a_node(self):
         return next(iter(self.nodes))
@@ -45,108 +53,6 @@ class chicago_graph:
     def __str__(self):
         return str(self.df.head(5))
 
-''' 
-Streets will be saved as nodes.
-Class attributes were selected based upon the available data from OSMNX;
-    attributes may be added to/ modified as data about each node becomes available.
-'''
-class node:
-    
-    def __init__(self, identifier):
-        self.intersections = None #The node represents the street segment between these two intersections
-        self.data = [] #Later to be concatenated into a pandas dataframe holding sensor trace data
-        self.name = "" #Name of the street
-        self.length = None
-        self.oneway = None
-        self.type = None #OSM type, usually indicates type of street (ie, highway vs residential)
-        self.identifier = identifier #'''OSMnx identifier key'''
-        self.lanes = None
-        self.middle_coordinate = {} #The middle lat/long between the street's intersections. Used for plotting
-        self.predecessors = set([]) 
-        self.successors = set([])
-        self.tf_satisfied = True #State of satisfaction for a given req; simplified here for plotting, could later become a dictionary of data:satisfaction value
-    
-    '''
-    Some potentially useful methods:
-    '''
-    def equals(self, node2):
-        return (self.intersections == node2.intersections & self.identifier 
-                == node2.identifier & self.sensor_states == node2.sensor_states)
-        
-    def add_successor(self, node):
-        self.successors.add(node)
-        
-    def add_predecessor(self, node):
-        self.predecessors.add(node)
-    
-    def print(self):
-        print ("Intersections,", self.intersections, "| Name:", self.name, 
-               "| ID", self.identifier)
-
-
-
-'''
-Intersections will be saved as edges.
-Once again, class attributes were selected based upon the available data from OSMNX.
-'''
-class edge:
-    
-    def __init__(self, identifier):
-        self.coordinates = {} #Saved as an 'x','y' dictionary
-        self.sensor_states = set([]) #In the event of data from intersections
-        self.id = identifier
-        self.type = None
-        
-    '''
-    Potentially useful methods:
-    '''
-    def equals(self, edge2):
-        return (self.coordinates == edge2.coordinates & self.id == edge2.id
-                & self.sensor_states == edge2.sensor_states)
-   
-    def print(self):
-        print ("Coordinates:", self.coordinates, "\n", "Connected Nodes:", self.connected_nodes)
-
-
-'''
-Custom graph class.
-''' 
-class graph:
-    
-    def __init__(self):
-        self.nodes = set([])
-        self.edges = set([])
-        self.satisfaction_degree = 0.0
-        self.node_intersections_dict = {}
-        self.edge_dict = {}
-        self.attribute_set = {}
-        self.node_count = 0
-        self.dataframe = []
-        
-    def add_node(self, node):
-        self.nodes.add(node)
-        
-    def add_edge(self, edge):
-        self.edges.add(edge)
-    
-    def print_nodes(self):
-        for node in self:
-            node.print()
-    
-    def print_edges(self):
-        for edge in self:
-            edge.print()
-    
-    def containsNode(self, node):
-        if node in self.nodes:
-            return True;
-        return False;
-    
-    def containsEdge(self, edge):
-        if edge in self.edges:
-            return True;
-        return False;  
-    
     '''
     Returns a set of nodes which sit between i and j (inclusive) connections away from 
         the given start node. Assumes the graph preserves direction.
@@ -191,10 +97,3 @@ class graph:
             if poly.contains(Point((node.middle_coordinate['x'], node.middle_coordinate['y']))):
                 contained_nodes.add(node)
         return contained_nodes;
-    
-    '''
-    Returns a single node from the graph. Helpful for testing/ development. 
-    '''
-    def a_node(self):
-        return self.node_intersections_dict[list(self.node_intersections_dict.keys())[0]]
-    

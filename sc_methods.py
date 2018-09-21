@@ -9,6 +9,7 @@ import pandas as pd
 import numpy
 import math
 import osmnx as ox
+from collections import defaultdict
 
 '''
 Automates OSM data download.
@@ -18,50 +19,33 @@ Should be modified to accomodate available data in adding features to nodes.
 def graph_from_OSMnx(graph):
     g = sc_lib.graph()
 
+    node_data = graph.node.data()
+    print('{} nodes'.format(len(node_data)))
+
     for item in graph.node.data():
-        edge = sc_lib.edge(item[0])
-        edge.coordinates["x"] = item[1]["x"]
-        edge.coordinates["y"] = item[1]["y"]
-        if 'highway' in item[1].keys():
-            edge.type = item[1]['highway']
-        g.edges.add(edge)      
-        g.edge_dict[item[0]] = edge
+        edge = sc_lib.edge(item[0],(item[1]["y"],item[1]["x"]))
+        g.add_edge(edge)
         
-        
-    for item in graph.edges(data=True):       
-        node = sc_lib.node(item[2]["osmid"])
+    edge_data = graph.edges(data=True)
+    print('{} edges'.format(len(edge_data)))
+
+    intersection_to_nodes = defaultdict(list)
+    for item in edge_data:       
         node.intersections = (item[0], item[1])      
-        if 'name' in item[2].keys():
-            node.name = item[2]['name']
-        if 'length' in item[2].keys():
-            node.length = item[2]['length']
-        if 'highway' in item[2].keys():
-            node.type = item[2]['highway']
-        if 'lanes' in item[2].keys():
-            node.lanes = item[2]['lanes']
-        if 'oneway' in item[2].keys():
-            node.oneway = item[2]['oneway']        
-            ''' SAMPLE ADDITION TO ATTRIBUTE DICTIONARY:
-            if 'oneway' not in g.attribute_set.keys():
-                g.attribute_set['oneway'] = {node}
-            else:
-                g.attribute_set['oneway'].add(node)
-            '''
+        intersection0Coords = g.edge_dict[item[0]].coordinates 
+        intersection1Coords = g.edge_dict[item[1]].coordinates 
+        lon = (intersection0Coords['x'] + intersection1Coords['x'])/2.0
+        lat = (intersection0Coords['y'] + intersection1Coords['y'])/2.0
         
-        intersection0Coords = g.edge_dict[node.intersections[0]].coordinates 
-        intersection1Coords = g.edge_dict[node.intersections[1]].coordinates 
-        node.middle_coordinate['x'] = (intersection0Coords['x'] + intersection1Coords['x'])/2.0
-        node.middle_coordinate['y'] = (intersection0Coords['y'] + intersection1Coords['y'])/2.0
-        g.nodes.add(node)  
-        g.node_intersections_dict[node.intersections] = node
+        node = sc_lib.node(item[2]["osmid"], (lat,lon))
+        g.add_node(node)  
+        intersection_to_nodes[node.intersections[0]].append(node)
     
-    for node in g.nodes:
-        g.node_count += 1
-        for edge in graph.edges:
-            if node.intersections[1] == edge[0]:
-                node.add_successor(g.node_intersections_dict[(edge[0], edge[1])])
-            if node.intersections[0] == edge[1]:
-                node.add_predecessor(g.node_intersections_dict[(edge[0], edge[1])])
+    for node_a in g.nodes:
+        for node_b in intersection_to_nodes[node_a.intersections[1]]:
+            node_a.add_successor(node_b)
+            node_b.add_predecessor(node_a)
+
     return g
 
 '''
@@ -118,26 +102,42 @@ def load_nyc_data(graph, file):
 
 def load_chicago_data(path, abridged=False):
     perf = performance.performance_tester()
+
     data_filename = 'data.csv' if not abridged else 'abridged_data.csv'
     node_df = pd.read_csv(path+'nodes.csv')
     data_df = pd.read_csv(path+data_filename)
-    perf.checkpoint('loaded data_df')
-
     data_df['timestamp'] = pd.to_datetime(data_df['timestamp'])
     data_df = data_df.set_index('timestamp')
-    perf.checkpoint('processed data_df')
-    
-    graph = sc_lib.chicago_graph(data_df)
-    perf.checkpoint('created graph')
-     
-    for index, row in node_df.iterrows():
-        node = graph.get_node(row['node_id'])
-        if not node:
-            node = sc_lib.chicago_node(row['node_id'],(row['lat'],row['lon']))
-            graph.add_node(node)
-    
-    perf.checkpoint('processed node df')
 
+    perf.checkpoint('loaded csvs')
+
+    minLat = float('inf')
+    maxLat = float('-inf')
+    minLon = float('inf')
+    maxLon = float('-inf')
+    aot_nodes = dict() 
+    for index, row in node_df.iterrows():
+        aot_nodes[row['node_id']] = (row['lat'],row['lon'])
+        minLat = min(row['lat'],minLat)
+        maxLat = max(row['lat'],maxLat)
+        minLon = min(row['lon'],minLon)
+        maxLon = max(row['lon'],maxLon)
+
+    perf.checkpoint('found min/max')
+    print('maxLat: {} minLat: {} maxLon: {} minLon: {}'.format(maxLat,minLat,maxLon,minLon))
+
+    G = ox.graph_from_bbox(maxLat,minLat,maxLon,minLon)
+    
+    perf.checkpoint('osmnx loaded graph')
+    
+    graph = graph_from_OSMnx(G)
+
+    perf.checkpoint('converted graph')
+   
+    graph.df = data_df
+    
+    #TODO: match data to nodes based on coords
+    
     return graph 
 
 '''
@@ -157,9 +157,3 @@ def nodes_from_point(graph, point, d):
                 return_nodes.add(node)
         return return_nodes;
 
-
-'''
-# SAMPLE
-G = ox.graph_from_point((56.21728389, 10.2336194), distance=2000)
-graph = graph_from_OSMnx(G)
-'''
