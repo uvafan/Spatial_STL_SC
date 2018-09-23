@@ -6,7 +6,7 @@ A short library of useful methods to supplement sc_lib.
 import performance
 import sc_lib
 import pandas as pd
-import numpy
+import numpy as np
 import math
 import osmnx as ox
 from collections import defaultdict
@@ -22,7 +22,7 @@ def graph_from_OSMnx(graph):
     node_data = graph.node.data()
     print('{} nodes'.format(len(node_data)))
 
-    for item in graph.node.data():
+    for item in node_data:
         edge = sc_lib.edge(item[0],(item[1]["y"],item[1]["x"]))
         g.add_edge(edge)
         
@@ -31,13 +31,13 @@ def graph_from_OSMnx(graph):
 
     intersection_to_nodes = defaultdict(list)
     for item in edge_data:       
-        node.intersections = (item[0], item[1])      
         intersection0Coords = g.edge_dict[item[0]].coordinates 
         intersection1Coords = g.edge_dict[item[1]].coordinates 
-        lon = (intersection0Coords['x'] + intersection1Coords['x'])/2.0
-        lat = (intersection0Coords['y'] + intersection1Coords['y'])/2.0
+        lon = (intersection0Coords[0] + intersection1Coords[0])/2.0
+        lat = (intersection0Coords[1] + intersection1Coords[1])/2.0
         
         node = sc_lib.node(item[2]["osmid"], (lat,lon))
+        node.intersections = (item[0], item[1])      
         g.add_node(node)  
         intersection_to_nodes[node.intersections[0]].append(node)
     
@@ -117,6 +117,8 @@ def load_chicago_data(path, abridged=False):
     maxLon = float('-inf')
     aot_nodes = dict() 
     for index, row in node_df.iterrows():
+        if isinstance(row['end_timestamp'],str):
+            continue
         aot_nodes[row['node_id']] = (row['lat'],row['lon'])
         minLat = min(row['lat'],minLat)
         maxLat = max(row['lat'],maxLat)
@@ -126,7 +128,7 @@ def load_chicago_data(path, abridged=False):
     perf.checkpoint('found min/max')
     print('maxLat: {} minLat: {} maxLon: {} minLon: {}'.format(maxLat,minLat,maxLon,minLon))
 
-    G = ox.graph_from_bbox(maxLat,minLat,maxLon,minLon)
+    G = ox.graph_from_bbox(maxLat-.1,minLat+.1,maxLon-.1,minLon+.1)
     
     perf.checkpoint('osmnx loaded graph')
     
