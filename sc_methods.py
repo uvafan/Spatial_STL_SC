@@ -111,14 +111,16 @@ def load_chicago_data(path, abridged=False):
     data_df = data_df.set_index('timestamp')
     perf.checkpoint('loaded csvs')
     aot_nodes = dict() 
-    p = tuple()
+    lat_sum = 0
+    lon_sum = 0
     for index, row in node_df.iterrows():
         if isinstance(row['end_timestamp'],str):
             continue
-        p = (row['lat'],row['lon'])
         aot_nodes[row['node_id']] = (row['lat'],row['lon'])
-        break
-    G = ox.graph_from_point((40.758896,-73.985130),distance=500)
+        lat_sum += row['lat']
+        lon_sum += row['lon']
+    p = (lat_sum/len(aot_nodes),lon_sum/len(aot_nodes))
+    G = ox.graph_from_point(p,distance=1000)
     perf.checkpoint('osmnx loaded graph')
     graph = graph_from_OSMnx(G)
     perf.checkpoint('converted graph')
