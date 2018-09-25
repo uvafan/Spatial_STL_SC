@@ -31,10 +31,11 @@ def graph_from_OSMnx(graph):
 
     intersection_to_nodes = defaultdict(list)
     for item in edge_data:       
+        #print(str(item))
         intersection0Coords = g.edge_dict[item[0]].coordinates 
         intersection1Coords = g.edge_dict[item[1]].coordinates 
-        lon = (intersection0Coords[0] + intersection1Coords[0])/2.0
-        lat = (intersection0Coords[1] + intersection1Coords[1])/2.0
+        lon = (intersection0Coords[1] + intersection1Coords[1])/2.0
+        lat = (intersection0Coords[0] + intersection1Coords[0])/2.0
         
         node = sc_lib.node(item[2]["osmid"], (lat,lon))
         node.intersections = (item[0], item[1])      
@@ -108,38 +109,21 @@ def load_chicago_data(path, abridged=False):
     data_df = pd.read_csv(path+data_filename)
     data_df['timestamp'] = pd.to_datetime(data_df['timestamp'])
     data_df = data_df.set_index('timestamp')
-
     perf.checkpoint('loaded csvs')
-
-    minLat = float('inf')
-    maxLat = float('-inf')
-    minLon = float('inf')
-    maxLon = float('-inf')
     aot_nodes = dict() 
+    p = tuple()
     for index, row in node_df.iterrows():
         if isinstance(row['end_timestamp'],str):
             continue
+        p = (row['lat'],row['lon'])
         aot_nodes[row['node_id']] = (row['lat'],row['lon'])
-        minLat = min(row['lat'],minLat)
-        maxLat = max(row['lat'],maxLat)
-        minLon = min(row['lon'],minLon)
-        maxLon = max(row['lon'],maxLon)
-
-    perf.checkpoint('found min/max')
-    print('maxLat: {} minLat: {} maxLon: {} minLon: {}'.format(maxLat,minLat,maxLon,minLon))
-
-    G = ox.graph_from_bbox(maxLat-.1,minLat+.1,maxLon-.1,minLon+.1)
-    
+        break
+    G = ox.graph_from_point((40.758896,-73.985130),distance=500)
     perf.checkpoint('osmnx loaded graph')
-    
     graph = graph_from_OSMnx(G)
-
     perf.checkpoint('converted graph')
-   
     graph.df = data_df
-    
     #TODO: match data to nodes based on coords
-    
     return graph 
 
 '''

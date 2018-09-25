@@ -11,8 +11,6 @@ import random
 
 path = "chicago-complete.daily.2018-09-08/"
 graph = sc_methods.load_chicago_data(path,abridged=True)
-print(graph)
-print(graph.a_node())
 sc_plot.plot(graph)
 '''
 print(sstl_methods.tf_always(graph.df,param='intensity',requirements=(False,float('-inf'),float('inf'))))
