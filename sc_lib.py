@@ -6,6 +6,8 @@ Object Library: Node, Edge, Graph
 import queue
 import pandas as pd
 import numpy as np
+import osmnx as os
+from collections import defaultdict
 from datetime import datetime
 from shapely.geometry import Point
 from shapely.geometry import MultiPoint
@@ -49,6 +51,34 @@ class graph:
 
     def a_node(self):
         return next(iter(self.nodes))
+
+    def add_OSMnx_data(self,osmnx_graph):
+        node_data = osmnx_graph.node.data()
+
+        for item in node_data:
+            print(item)
+            new_edge = edge(item[0],(item[1]["y"],item[1]["x"]))
+            self.add_edge(new_edge)
+        
+        edge_data = osmnx_graph.edges(data=True)
+
+        intersection_to_nodes = defaultdict(list)
+        for item in edge_data:       
+            print(item)
+            intersection0Coords = self.edge_dict[item[0]].coordinates 
+            intersection1Coords = self.edge_dict[item[1]].coordinates 
+            lon = (intersection0Coords[1] + intersection1Coords[1])/2.0
+            lat = (intersection0Coords[0] + intersection1Coords[0])/2.0
+        
+            new_node = node(item[2]["osmid"], (lat,lon))
+            new_node.intersections = (item[0], item[1])      
+            self.add_node(new_node)  
+            intersection_to_nodes[new_node.intersections[0]].append(new_node)
+    
+        for node_a in self.nodes:
+            for node_b in intersection_to_nodes[node_a.intersections[1]]:
+                node_a.add_successor(node_b)
+                node_b.add_predecessor(node_a)
 
     def __str__(self):
         return str(self.df.head(5))
