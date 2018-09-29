@@ -9,6 +9,7 @@ import pandas as pd
 import numpy as np
 import math
 import osmnx as ox
+import sys
 from collections import defaultdict
 
 '''
@@ -38,8 +39,8 @@ Customized to fit NYC OpenData (which uses street names), but can be improved
 to match nodes with specific geographical coordinates/ more sohpisticated parsing
 and node alignment. 
 '''
-def load_nyc_data(graph, file):
-    f = open(file, 'r')
+def load_nyc_data(graph, fin):
+    f = open(fin, 'r')
     cols = f.readline().strip().split(',')
     for line in f:
         for node in graph.nodes:
@@ -53,7 +54,7 @@ def load_nyc_data(graph, file):
         graph.dataframe.append(node.data)    
     graph.dataframe = pd.concat(graph.dataframe)
 
-def load_chicago_data(path, abridged=False):
+def load_chicago_data(path, abridged=False, sample=float('inf')):
     perf = performance.performance_tester()
 
     data_filename = 'data.csv' if not abridged else 'abridged_data.csv'
@@ -68,16 +69,15 @@ def load_chicago_data(path, abridged=False):
     for index, row in node_df.iterrows():
         if isinstance(row['end_timestamp'],str):
             continue
-        ctr+=1
-        if ctr == 11:
-            break
         p = (row['lat'],row['lon'])
         try:
             G = ox.graph_from_point(p,distance=100,network_type='drive')
-            graph.add_OSMnx_data(G)
+            graph.add_OSMnx_data(G,data_id=row['node_id'])
+            ctr+=1
         except:
-            pass
-        aot_nodes[row['node_id']] = p 
-    graph.df = data_df
-    #TODO: match data to nodes based on coords
+            continue
+        if ctr == sample:
+            break 
+    perf.checkpoint('loaded osmnx data')
+    graph.chicago_df = data_df
     return graph 

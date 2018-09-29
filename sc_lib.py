@@ -20,6 +20,7 @@ class node:
         self.tags = set()
         self.predecessors = set([]) 
         self.successors = set([])
+        self.data_id = None
 
     def __str__(self):
         return 'ID: {} Coordinates: {}'.format(self.ID,self.coordinates)
@@ -40,7 +41,7 @@ class graph:
         self.nodes = set()
         self.edges = set()
         self.edge_dict = dict()
-        self.df = pd.DataFrame() 
+        self.chicago_df = pd.DataFrame() 
 
     def add_edge(self,edge):
         self.edges.add(edge)
@@ -52,11 +53,10 @@ class graph:
     def a_node(self):
         return next(iter(self.nodes))
 
-    def add_OSMnx_data(self,osmnx_graph):
+    def add_OSMnx_data(self,osmnx_graph,data_id=None):
         node_data = osmnx_graph.node.data()
 
         for item in node_data:
-            print(item)
             new_edge = edge(item[0],(item[1]["y"],item[1]["x"]))
             self.add_edge(new_edge)
         
@@ -64,14 +64,14 @@ class graph:
 
         intersection_to_nodes = defaultdict(list)
         for item in edge_data:       
-            print(item)
             intersection0Coords = self.edge_dict[item[0]].coordinates 
             intersection1Coords = self.edge_dict[item[1]].coordinates 
             lon = (intersection0Coords[1] + intersection1Coords[1])/2.0
             lat = (intersection0Coords[0] + intersection1Coords[0])/2.0
         
-            new_node = node(item[2]["osmid"], (lat,lon))
+            new_node = node(item[2]['osmid'], (lat,lon))
             new_node.intersections = (item[0], item[1])      
+            new_node.data_id = data_id
             self.add_node(new_node)  
             intersection_to_nodes[new_node.intersections[0]].append(new_node)
     
@@ -81,7 +81,7 @@ class graph:
                 node_b.add_predecessor(node_a)
 
     def __str__(self):
-        return str(self.df.head(5))
+        return str(self.chicag_df.head(5))
 
     '''
     Returns a set of nodes which sit between i and j (inclusive) connections away from 
