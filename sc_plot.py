@@ -18,16 +18,15 @@ Loads in nodes according to their coordinates, edges connecting those coordinate
     which are satisfied, and red to represent those unsatisfied.
 '''
 def plot(graph,directed=True): 
-    satisfied_plot_nodes = []
-    unsatisfied_plot_nodes = []
+    blue_plot_nodes = []
+    green_plot_nodes = []
     plot_edges = []
     for node in graph.nodes: 
         node_info = {'lon':node.coordinates[1], 'lat':node.coordinates[0]}
-        #print(node_info)
-        if node.tf_satisfied: 
-            satisfied_plot_nodes.append(node_info)
-        else: 
-            unsatisfied_plot_nodes.append(node_info)
+        if 'school' in node.tags:
+            blue_plot_nodes.append(node_info)
+        else:
+            green_plot_nodes.append(node_info)
 
         neighbors = node.successors
         if not directed:
@@ -36,8 +35,8 @@ def plot(graph,directed=True):
             plot_edges.append({'start_lon':node.coordinates[1], 'end_lon':successor.coordinates[1],
                                'start_lat':node.coordinates[0], 'end_lat':successor.coordinates[0]})
     
-    satisfied_df_nodes = pd.DataFrame(satisfied_plot_nodes)
-    unsatisfied_df_nodes = pd.DataFrame(unsatisfied_plot_nodes)
+    blue_df_nodes = pd.DataFrame(blue_plot_nodes)
+    green_df_nodes = pd.DataFrame(green_plot_nodes)
     df_edges = pd.DataFrame(plot_edges)
   
     if not df_edges.empty: 
@@ -50,12 +49,14 @@ def plot(graph,directed=True):
                         alpha=30,
                         linewidth=3)
 
-    if not satisfied_df_nodes.empty:
-        geoplotlib.dot(satisfied_df_nodes, 
+    if not green_df_nodes.empty:
+        geoplotlib.dot(green_df_nodes, 
                    color=[0,255,0,255]
                    )
     
-    if not unsatisfied_df_nodes.empty:
-        geoplotlib.dot(unsatisfied_df_nodes)
+    if not blue_df_nodes.empty:
+        geoplotlib.dot(blue_df_nodes,
+                   color=[0,0,255,255]
+                   )
     
     geoplotlib.show()

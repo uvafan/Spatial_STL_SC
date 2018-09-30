@@ -10,7 +10,7 @@ import sc_plot
 import random
 
 path = "chicago-complete.daily.2018-09-08/"
-graph = sc_methods.load_chicago_data(path,abridged=True,sample=10)
+graph = sc_methods.load_chicago_data(path,abridged=True,sample=5)
 sc_plot.plot(graph)
 '''
 print(sstl_methods.tf_always(graph.df,param='intensity',requirements=(False,float('-inf'),float('inf'))))

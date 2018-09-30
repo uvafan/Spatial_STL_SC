@@ -70,12 +70,9 @@ def load_chicago_data(path, abridged=False, sample=float('inf')):
         if isinstance(row['end_timestamp'],str):
             continue
         p = (row['lat'],row['lon'])
-        try:
-            G = ox.graph_from_point(p,distance=100,network_type='drive')
-            graph.add_OSMnx_data(G,data_id=row['node_id'])
-            ctr+=1
-        except:
-            continue
+        graph.add_OSMnx_data(p,data_id=row['node_id'],dist=250)
+        graph.add_OSMnx_pois(p,amenities=['school'],dist=1000)
+        ctr+=1
         if ctr == sample:
             break 
     perf.checkpoint('loaded osmnx data')

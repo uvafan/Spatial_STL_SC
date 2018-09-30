@@ -6,7 +6,7 @@ Object Library: Node, Edge, Graph
 import queue
 import pandas as pd
 import numpy as np
-import osmnx as os
+import osmnx as ox
 from collections import defaultdict
 from datetime import datetime
 from shapely.geometry import Point
@@ -18,9 +18,10 @@ class node:
         self.coordinates = coordinates #(lat,lon)
         self.tf_satisfied = True # whether req is satisfied
         self.tags = set()
-        self.predecessors = set([]) 
-        self.successors = set([])
+        self.predecessors = set()
+        self.successors = set()
         self.data_id = None
+        self.intersections = tuple()
 
     def __str__(self):
         return 'ID: {} Coordinates: {}'.format(self.ID,self.coordinates)
@@ -30,11 +31,22 @@ class node:
         
     def add_predecessor(self, node):
         self.predecessors.add(node)
+
+    def add_tag(self,tag):
+        self.tags.add(tag)
+
+    #for sets
+    def __hash__(self):
+        return hash(self.coordinates)
    
 class edge:
     def __init__(self, ID, coordinates):
         self.ID = ID
         self.coordinates = coordinates    
+
+    #for sets
+    def __hash__(self):
+        return hash(self.coordinates)
     
 class graph:
     def __init__(self):
@@ -53,7 +65,24 @@ class graph:
     def a_node(self):
         return next(iter(self.nodes))
 
-    def add_OSMnx_data(self,osmnx_graph,data_id=None):
+    def add_OSMnx_pois(self,p,dist=5000,amenities=None):
+        nearby_pois = ox.pois_from_point(p,distance=dist,amenities=amenities)
+        for index, row in nearby_pois.iterrows():
+            geo = row['geometry']
+            point = (0,0)
+            try:
+                point = (geo.y,geo.x)
+            except:
+                point = (geo.centroid.y,geo.centroid.x)
+            new_node = node(row['osmid'],point)
+            new_node.add_tag(row['amenity'])
+            self.add_node(new_node)
+
+    def add_OSMnx_data(self,p,dist=500,data_id=None):
+        try:
+            osmnx_graph = ox.graph_from_point(p,distance=dist,network_type='drive')
+        except:
+            return
         node_data = osmnx_graph.node.data()
 
         for item in node_data:
@@ -76,6 +105,8 @@ class graph:
             intersection_to_nodes[new_node.intersections[0]].append(new_node)
     
         for node_a in self.nodes:
+            if not node_a.intersections:
+                continue
             for node_b in intersection_to_nodes[node_a.intersections[1]]:
                 node_a.add_successor(node_b)
                 node_b.add_predecessor(node_a)
