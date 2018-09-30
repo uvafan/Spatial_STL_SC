@@ -78,7 +78,7 @@ class graph:
             new_node.add_tag(row['amenity'])
             self.add_node(new_node)
 
-    def add_OSMnx_data(self,p,dist=500,data_id=None):
+    def add_OSMnx_data(self,p,dist=100,data_id=None):
         try:
             osmnx_graph = ox.graph_from_point(p,distance=dist,network_type='drive')
         except:
