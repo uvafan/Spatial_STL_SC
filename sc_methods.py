@@ -56,14 +56,13 @@ def load_nyc_data(graph, fin):
 
 def load_chicago_data(path, abridged=False, sample=float('inf')):
     perf = performance.performance_tester()
-
     data_filename = 'data.csv' if not abridged else 'abridged_data.csv'
     node_df = pd.read_csv('{}nodes.csv'.format(path))
     data_df = pd.read_csv(path+data_filename)
     data_df['timestamp'] = pd.to_datetime(data_df['timestamp'])
     data_df = data_df.set_index('timestamp')
     perf.checkpoint('loaded csvs')
-    graph = sc_lib.graph()
+    graph = sc_lib.graph('Chicago')
     aot_nodes = dict() 
     ctr = 0
     for index, row in node_df.iterrows():
@@ -76,5 +75,5 @@ def load_chicago_data(path, abridged=False, sample=float('inf')):
         if ctr == sample:
             break 
     perf.checkpoint('loaded osmnx data')
-    graph.chicago_df = data_df
+    graph.df = data_df
     return graph 

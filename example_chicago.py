@@ -12,6 +12,6 @@ import random
 path = "chicago-complete.daily.2018-09-08/"
 graph = sc_methods.load_chicago_data(path,abridged=True,sample=5)
 sc_plot.plot(graph)
-'''
-print(sstl_methods.tf_always(graph.df,param='intensity',requirements=(False,float('-inf'),float('inf'))))
-'''
+checker = sstl_methods.sstl_checker(graph)
+checker.set_location(graph.a_node().coordinates)
+#ans = checker.check_formula('A[0,60](W{school}(<min[0,1],temperature>(15,inf)))')

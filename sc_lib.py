@@ -49,11 +49,12 @@ class edge:
         return hash(self.coordinates)
     
 class graph:
-    def __init__(self):
+    def __init__(self,df_type):
         self.nodes = set()
         self.edges = set()
         self.edge_dict = dict()
-        self.chicago_df = pd.DataFrame() 
+        self.df = pd.DataFrame() 
+        self.df_type = df_type
 
     def add_edge(self,edge):
         self.edges.add(edge)
