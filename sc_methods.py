@@ -69,8 +69,8 @@ def load_chicago_data(path, abridged=False, sample=float('inf')):
         if isinstance(row['end_timestamp'],str):
             continue
         p = (row['lat'],row['lon'])
-        graph.add_OSMnx_data(p,data_id=row['node_id'])
-        graph.add_OSMnx_pois(p,amenities=['school'],dist=1000)
+        graph.add_OSMnx_data(p,data_id=row['node_id'],dist=500)
+        graph.add_OSMnx_pois(p,amenities=['school'],dist=2000)
         ctr+=1
         if ctr == sample:
             break 

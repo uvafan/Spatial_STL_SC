@@ -32,6 +32,9 @@ def plot(graph,directed=True):
         if not directed:
             neighbors = neighbors.union(node.predecessors)
         for successor in neighbors:
+            if node.coordinates[1] == successor.coordinates[1] and node.coordinates[0] == successor.coordinates[0]:
+                print(node)
+                print(successor)
             plot_edges.append({'start_lon':node.coordinates[1], 'end_lon':successor.coordinates[1],
                                'start_lat':node.coordinates[0], 'end_lat':successor.coordinates[0]})
     
@@ -49,14 +52,10 @@ def plot(graph,directed=True):
                         alpha=30,
                         linewidth=3)
 
-    print('green')
-    print(green_df_nodes)
     if not green_df_nodes.empty:
         geoplotlib.dot(green_df_nodes, 
                    color=[0,255,0,255]
                    )
-    print('blue')
-    print(blue_df_nodes) 
     if not blue_df_nodes.empty:
         geoplotlib.dot(blue_df_nodes,
                    color=[0,0,255,255]

@@ -14,6 +14,8 @@ from shapely.geometry import MultiPoint
 
 class node:
     def __init__(self, ID, coordinates):
+        if isinstance(ID,list):
+            ID = tuple(sorted(ID))
         self.ID = ID
         self.coordinates = coordinates #(lat,lon)
         self.tf_satisfied = True # whether req is satisfied
@@ -37,31 +39,41 @@ class node:
 
     #for sets
     def __hash__(self):
-        return hash(self.coordinates)
+        return hash(self.ID)
    
 class edge:
     def __init__(self, ID, coordinates):
+        if isinstance(ID,list):
+            ID = tuple(sorted(ID))
         self.ID = ID
         self.coordinates = coordinates    
 
     #for sets
     def __hash__(self):
-        return hash(self.coordinates)
+        return hash(self.ID)
     
 class graph:
     def __init__(self,df_type):
         self.nodes = set()
         self.edges = set()
+        self.node_dict = dict()
         self.edge_dict = dict()
         self.df = pd.DataFrame() 
         self.df_type = df_type
 
     def add_edge(self,edge):
-        self.edges.add(edge)
-        self.edge_dict[edge.ID] = edge
+        if edge.ID not in self.edge_dict:
+            self.edges.add(edge)
+            self.edge_dict[edge.ID] = edge
+            return True
+        return False
 
     def add_node(self, node):
-        self.nodes.add(node)
+        if node.ID not in self.node_dict:
+            self.nodes.add(node)
+            self.node_dict[node.ID] = node
+            return True
+        return False
 
     def a_node(self):
         return next(iter(self.nodes))
@@ -102,8 +114,8 @@ class graph:
             new_node = node(item[2]['osmid'], (lat,lon))
             new_node.intersections = (item[0], item[1])      
             new_node.data_id = data_id
-            self.add_node(new_node)  
-            intersection_to_nodes[new_node.intersections[0]].append(new_node)
+            if self.add_node(new_node):
+                intersection_to_nodes[new_node.intersections[0]].append(new_node)
     
         for node_a in self.nodes:
             if not node_a.intersections:

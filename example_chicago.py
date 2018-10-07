@@ -10,7 +10,7 @@ import sc_plot
 import random
 
 path = "chicago-complete.daily.2018-09-08/"
-graph = sc_methods.load_chicago_data(path,abridged=True,sample=5)
+graph = sc_methods.load_chicago_data(path,abridged=True,sample=10)
 sc_plot.plot(graph)
 checker = sstl_methods.sstl_checker(graph)
 checker.set_location(graph.a_node().coordinates)
