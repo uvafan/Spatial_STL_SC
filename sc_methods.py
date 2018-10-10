@@ -12,33 +12,6 @@ import osmnx as ox
 import sys
 from collections import defaultdict
 
-'''
-Two functions which are useful when used together;
-retrieves either all segments along a given street name (as streets are often spread
-out across multiple nodes), and to provide all the intersections along a certain street.
-'''
-def intersections_along_street(graph, name):
-    intersects = []
-    segs = segments_in_street(graph, name)
-    for item in graph.edges:
-        for segment in segs:
-            if item.id in segment.intersections:
-                intersects.append(item)
-    return intersects
-
-def segments_in_street(graph, name):
-    segs = []
-    for item in graph.nodes:
-        if name in item.name:
-            segs.append(item)
-    return segs
-
-'''
-Given a sc_lib graph, loads CSV data into nodes in the graph.
-Customized to fit NYC OpenData (which uses street names), but can be improved
-to match nodes with specific geographical coordinates/ more sohpisticated parsing
-and node alignment. 
-'''
 def load_nyc_data(graph, fin):
     f = open(fin, 'r')
     cols = f.readline().strip().split(',')
@@ -63,19 +36,18 @@ def load_chicago_data(path, abridged=False, sample=float('inf')):
     data_df = data_df.set_index('timestamp')
     perf.checkpoint('loaded csvs')
     graph = sc_lib.graph()
-    aot_nodes = dict() 
     ctr = 0
     for index, row in node_df.iterrows():
         if isinstance(row['end_timestamp'],str):
             continue
         p = (row['lat'],row['lon'])
-        graph.add_OSMnx_data(p,data_id=row['node_id'],dist=500)
-        graph.add_OSMnx_pois(p,amenities=['school'],dist=2000)
+        node_df = data_df.loc[data_df['node_id']==row['node_id']]
+        graph.add_OSMnx_data_within_dist(p,data_id=row['node_id'],data_df=node_df)
+        graph.add_OSMnx_pois(p,amenities=['school'])
         ctr+=1
         if ctr == sample:
             break 
     perf.checkpoint('loaded osmnx data')
-    graph.df = data_df
     return graph 
 
 def load_parking_locs(path,graph):

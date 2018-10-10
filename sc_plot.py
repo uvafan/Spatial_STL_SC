@@ -30,7 +30,6 @@ def plot(graph,directed=True):
             red_plot_nodes.append(node_info)
         else:
             green_plot_nodes.append(node_info)
-
         neighbors = node.successors
         if not directed:
             neighbors = neighbors.union(node.predecessors)

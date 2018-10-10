@@ -24,9 +24,13 @@ class node:
         self.successors = set()
         self.data_id = None
         self.intersections = tuple()
+        self.df = None
 
     def __str__(self):
-        return 'ID: {} Coordinates: {}'.format(self.ID,self.coordinates)
+        ret = 'ID: {} Coordinates: {}'.format(self.ID,self.coordinates)
+        ret += '\ndata_id: {}'.format(self.data_id)
+        ret += '\ndf:\n{}'.format(self.df)
+        return ret
 
     def add_successor(self, node):
         self.successors.add(node)
@@ -36,6 +40,9 @@ class node:
 
     def add_tag(self,tag):
         self.tags.add(tag)
+
+    def set_df(self,df):
+        self.df = df
 
     #for sets
     def __eq__(self,other):
@@ -62,9 +69,7 @@ class graph:
     def __init__(self):
         self.nodes = set()
         self.edges = set()
-        #self.node_dict = dict()
         self.edge_dict = dict()
-        self.df = pd.DataFrame() 
 
     def add_edge(self,edge):
         if edge not in self.edges:
@@ -82,7 +87,8 @@ class graph:
     def a_node(self):
         return next(iter(self.nodes))
 
-    def add_OSMnx_pois(self,p,dist=5000,amenities=None):
+    #add OSM points of interest to graph within distance dist of point p
+    def add_OSMnx_pois(self,p,dist=1000,amenities=None):
         nearby_pois = ox.pois_from_point(p,distance=dist,amenities=amenities)
         for index, row in nearby_pois.iterrows():
             geo = row['geometry']
@@ -95,7 +101,8 @@ class graph:
             new_node.add_tag(row['amenity'])
             self.add_node(new_node)
 
-    def add_OSMnx_data(self,p,dist=100,data_id=None):
+    #add OSM nodes within distance dist of p, assign data to them 
+    def add_OSMnx_data_within_dist(self,p,dist=250,data_id=None,data_df=None):
         try:
             osmnx_graph = ox.graph_from_point(p,distance=dist,network_type='drive')
         except:
@@ -114,10 +121,11 @@ class graph:
             intersection1Coords = self.edge_dict[item[1]].coordinates 
             lon = (intersection0Coords[1] + intersection1Coords[1])/2.0
             lat = (intersection0Coords[0] + intersection1Coords[0])/2.0
-        
+            
             new_node = node(item[2]['osmid'], (lat,lon))
             new_node.intersections = (item[0], item[1])      
             new_node.data_id = data_id
+            new_node.df = data_df
             if self.add_node(new_node):
                 intersection_to_nodes[new_node.intersections[0]].append(new_node)
     
@@ -127,51 +135,3 @@ class graph:
             for node_b in intersection_to_nodes[node_a.intersections[1]]:
                 node_a.add_successor(node_b)
                 node_b.add_predecessor(node_a)
-
-    def __str__(self):
-        return str(self.chicag_df.head(5))
-
-    '''
-    Returns a set of nodes which sit between i and j (inclusive) connections away from 
-        the given start node. Assumes the graph preserves direction.
-    '''
-    def bfs_set(self, start, i, j, directed=True):
-        visited = set([])
-        q = queue.Queue()
-        q.put(start)
-        visited.add(start)
-        distance_dict = {}
-        distance_dict[start.intersections] = 0
-        requested_nodes = set([])
-        while q.not_empty:
-            v = q.get()
-            neighbors = v.successors
-            if not directed:
-                neighbors = neighbors.union(v.predecessors)
-            for successor in neighbors:
-                if successor not in visited:
-                   q.put(successor)
-                   distance_dict[successor.intersections] = distance_dict[v.intersections] + 1
-                   if distance_dict[successor.intersections] > j+1:
-                       return requested_nodes
-                   if distance_dict[successor.intersections] >= i and distance_dict[successor.intersections] <= j:
-                       requested_nodes.add(successor)
-            visited.add(v)
-    
-    '''
-    Returns a set of nodes which sit within a polygon, given a set of boundary nodes.
-    Can input any number (greater than or equal to three) of boundary nodes.
-    '''         
-    def nodes_in_polygon(self, nodes):
-        tuples = []
-        if isinstance(next(iter(nodes)),tuple):
-            tuples = list(nodes) 
-        else:
-            for node in nodes:
-                tuples.append((node.middle_coordinate['x'], node.middle_coordinate['y']))
-        poly = MultiPoint(tuples).convex_hull
-        contained_nodes = set([])
-        for node in self.nodes:
-            if poly.contains(Point((node.middle_coordinate['x'], node.middle_coordinate['y']))):
-                contained_nodes.add(node)
-        return contained_nodes;
