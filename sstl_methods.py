@@ -10,7 +10,6 @@ class sstl_checker:
     def __init__(self, G):
         self.graph = G
         self.loc = tuple()
-        self.df_type = G.df_type
         self.start_time = G.df.index[0]
 
     def set_location(self,coords):

@@ -53,13 +53,12 @@ class edge:
         return hash(self.ID)
     
 class graph:
-    def __init__(self,df_type):
+    def __init__(self):
         self.nodes = set()
         self.edges = set()
         self.node_dict = dict()
         self.edge_dict = dict()
         self.df = pd.DataFrame() 
-        self.df_type = df_type
 
     def add_edge(self,edge):
         if edge.ID not in self.edge_dict:

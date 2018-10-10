@@ -62,7 +62,7 @@ def load_chicago_data(path, abridged=False, sample=float('inf')):
     data_df['timestamp'] = pd.to_datetime(data_df['timestamp'])
     data_df = data_df.set_index('timestamp')
     perf.checkpoint('loaded csvs')
-    graph = sc_lib.graph('Chicago')
+    graph = sc_lib.graph()
     aot_nodes = dict() 
     ctr = 0
     for index, row in node_df.iterrows():
@@ -77,3 +77,30 @@ def load_chicago_data(path, abridged=False, sample=float('inf')):
     perf.checkpoint('loaded osmnx data')
     graph.df = data_df
     return graph 
+
+def load_parking_locs(path,graph):
+    fin = '{}aarhus_parking_address.csv'.format(path)
+    df = pd.read_csv(fin)
+    for index, row in df.iterrows():
+        new_node = sc_lib.node(row['garagecode'],(row['latitude'],row['longitude']))
+        new_node.add_tag('parking')
+        graph.add_node(new_node)        
+
+def midpoint(p1,p2):
+    return ((p1[0]+p2[0])/2,(p1[1]+p2[1])/2)
+
+def load_traffic_locs(path,graph):
+    fin = '{}trafficMetaData.csv'.format(path)
+    df = pd.read_csv(fin)
+    for index, row in df.iterrows():
+        p1 = (row['POINT_1_LAT'],row['POINT_1_LNG'])
+        p2 = (row['POINT_2_LAT'],row['POINT_2_LNG'])
+        new_node = sc_lib.node(row['extID'],midpoint(p1,p2))
+        new_node.add_tag('traffic')
+        graph.add_node(new_node)        
+
+def load_aarhus_data(path):
+    graph = sc_lib.graph()
+    load_parking_locs(path,graph)
+    load_traffic_locs(path,graph)
+    return graph

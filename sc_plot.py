@@ -23,7 +23,7 @@ def plot(graph,directed=True):
     plot_edges = []
     for node in graph.nodes: 
         node_info = {'lon':node.coordinates[1], 'lat':node.coordinates[0]}
-        if 'school' in node.tags:
+        if 'school' in node.tags or 'parking' in node.tags:
             blue_plot_nodes.append(node_info)
         else:
             green_plot_nodes.append(node_info)
