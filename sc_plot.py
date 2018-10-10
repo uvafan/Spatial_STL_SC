@@ -6,7 +6,6 @@ Includes a sample plot.
 '''
 import osmnx as ox
 import pandas as pd
-import sc_methods
 import geoplotlib
 import random
 
@@ -17,19 +16,29 @@ Loads in nodes according to their coordinates, edges connecting those coordinate
     Green is used to represent nodes (using the tf_satisfied attribute of the node)
     which are satisfied, and red to represent those unsatisfied.
 '''
-def plot(graph,directed=True): 
+def plot(graph,directed=True,blue=[],red=[]): 
     blue_plot_nodes = []
     green_plot_nodes = []
     red_plot_nodes = []
     plot_edges = []
     for node in graph.nodes: 
         node_info = {'lon':node.coordinates[1], 'lat':node.coordinates[0]}
-        if 'school' in node.tags or 'parking' in node.tags:
-            blue_plot_nodes.append(node_info)
-        elif 'library' in node.tags:
-            red_plot_nodes.append(node_info)
-        else:
-            green_plot_nodes.append(node_info)
+        assigned = False
+        for tag in blue:
+            if tag in node.tags:
+                blue_plot_nodes.append(node_info)
+                assigned = True
+                break
+        if assigned:
+            continue
+        for tag in red:
+            if tag in node.tags:
+                red_plot_nodes.append(node_info)
+                assigned = True
+                break
+        if assigned:
+            continue
+        green_plot_nodes.append(node_info)
         neighbors = node.successors
         if not directed:
             neighbors = neighbors.union(node.predecessors)

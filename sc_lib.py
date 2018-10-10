@@ -24,12 +24,13 @@ class node:
         self.successors = set()
         self.data_id = None
         self.intersections = tuple()
-        self.df = None
+        self.df = pd.DataFrame()
 
     def __str__(self):
         ret = 'ID: {} Coordinates: {}'.format(self.ID,self.coordinates)
         ret += '\ndata_id: {}'.format(self.data_id)
         ret += '\ndf:\n{}'.format(self.df)
+        ret += '\ntags: {}'.format(self.tags)
         return ret
 
     def add_successor(self, node):

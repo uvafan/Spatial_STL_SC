@@ -5,19 +5,19 @@ Preliminary Model Checking Functions
 '''
 import sc_lib
 import pandas as pd
+import numpy as np
 
 class sstl_checker:
     def __init__(self, G):
         self.graph = G
         self.loc = tuple()
-        self.start_time = G.df.index[0]
 
     def set_location(self,coords):
         self.loc = coords
 
-    def check_formula(self,formulaStr,df=None,check_all=True):
-        if not df:
-            graph = self.graph.df
+    def check_formula(self,formulaStr,nodes=None,time_range=None,check_all=True):
+        if not nodes:
+            nodes = self.graph.nodes
         #Always
         if formulaStr[0] == 'A':
             pass
@@ -32,8 +32,8 @@ class sstl_checker:
             pass
         #Aggregation   
         elif formulaStr[0] == '<':
-            aggregationOp,distRange,param,valRange = self.processAggregationStr(formulaStr[1:])
-            return self.checkValues(df,aggregationOp,distRange,param,valRange,check_all)
+            aggregationOp,dist_range,param,val_range = self.processAggregationStr(formulaStr[1:])
+            return self.checkValues(nodes,time_range,aggregationOp,dist_range,param,val_range,check_all)
         else:
             print('Invalid formula: {}'.format(formulaStr))
             return False
@@ -45,45 +45,38 @@ class sstl_checker:
     
     def processAggregationStr(self,aggregationStr):
         specification,valRange = aggregationStr.split('>')
-        aggregation = ''
-        param = ''
+        aggregation = None
+        param = None
         specSplit = specification.split(',')
         if len(specSplit)>1:
             aggregation,param = specSplit[0],specSplit[1]
         else:
             param = specification
-        aggregationOp = ''
+        aggregationOp = None 
         distRange = None
-        if len(aggregation):
+        if aggregation:
             aggSplit = aggregation.split('[')
             aggregationOp = aggSplit[0]
             distRange = self.rangeStrToTuple(aggSplit[1][:-1])
         return aggregationOp,distRange,param,self.rangeStrToTuple(valRange[1:-1])
 
-    def checkValues(self,df,aggregationOp,distRange,param,valRange,check_all): 
-        pass    
-
-    '''
-    Arguments:
-    df - initial dataframe
-    requirements - list of requirements to check; each requirement is in following form:
-    (hrf, low, high) where param is the param to check and low/high represent the range of allowed values
-    time_range - time range of times to check in form of (start,end) 
-    nodes - set of node IDs to check
-
-    Return value:
-    New dataframe with all fillters applied
-    '''
-    def filter_df(df, param=None, requirements=None, time_range=None, nodes=None):
-        if time_range:
-            df = df[time_range[0]:time_range[1]]
-        if nodes:
-            df = df.loc[df['node_id'].isin(nodes)]
-        if param:
-            df = df[df['parameter']==param]
-        if requirements:
-            hrf, lo, hi = requirements
-            column = 'value_hrf' if hrf else 'value_raw'
-            df = df.loc[(df[column]>=lo) & (df[column]<=hi)]
-        return df
-
+    def checkValues(self,nodes,time_range,aggregationOp,dist_range,param,val_range,check_all): 
+        satisfied = True
+        data_ids_checked = set()
+        for node in nodes:
+            if node.data_id in data_ids_checked:
+                continue
+            data_ids_checked.add(node.data_id)
+            df = node.df
+            if df.empty:
+                continue
+            df = df.loc[df['parameter']==param]
+            if time_range:
+                df = df[time_range[0]:time_range[1]]
+            if not aggregationOp:
+                if check_all:
+                    minVal = np.min(df['value_hrf'].astype(float))
+                    maxVal = np.max(df['value_hrf'].astype(float))
+                    if minVal < val_range[0] or maxVal > val_range[1]:
+                        satisfied = False
+        return satisfied
