@@ -20,11 +20,14 @@ Loads in nodes according to their coordinates, edges connecting those coordinate
 def plot(graph,directed=True): 
     blue_plot_nodes = []
     green_plot_nodes = []
+    red_plot_nodes = []
     plot_edges = []
     for node in graph.nodes: 
         node_info = {'lon':node.coordinates[1], 'lat':node.coordinates[0]}
         if 'school' in node.tags or 'parking' in node.tags:
             blue_plot_nodes.append(node_info)
+        elif 'library' in node.tags:
+            red_plot_nodes.append(node_info)
         else:
             green_plot_nodes.append(node_info)
 
@@ -40,6 +43,7 @@ def plot(graph,directed=True):
     
     blue_df_nodes = pd.DataFrame(blue_plot_nodes)
     green_df_nodes = pd.DataFrame(green_plot_nodes)
+    red_df_nodes = pd.DataFrame(red_plot_nodes)
     df_edges = pd.DataFrame(plot_edges)
   
     if not df_edges.empty: 
@@ -52,13 +56,11 @@ def plot(graph,directed=True):
                         alpha=30,
                         linewidth=3)
 
+    if not red_df_nodes.empty:
+        geoplotlib.dot(red_df_nodes, color=[255,0,0,255])
     if not green_df_nodes.empty:
-        geoplotlib.dot(green_df_nodes, 
-                   color=[0,255,0,255]
-                   )
+        geoplotlib.dot(green_df_nodes, color=[0,255,0,255])
     if not blue_df_nodes.empty:
-        geoplotlib.dot(blue_df_nodes,
-                   color=[0,0,255,255]
-                   )
+        geoplotlib.dot(blue_df_nodes, color=[0,0,255,255])
     
     geoplotlib.show()

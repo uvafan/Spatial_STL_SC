@@ -79,7 +79,7 @@ def load_chicago_data(path, abridged=False, sample=float('inf')):
     return graph 
 
 def load_parking_locs(path,graph):
-    fin = '{}aarhus_parking_address.csv'.format(path)
+    fin = '{}parking/aarhus_parking_address.csv'.format(path)
     df = pd.read_csv(fin)
     for index, row in df.iterrows():
         new_node = sc_lib.node(row['garagecode'],(row['latitude'],row['longitude']))
@@ -90,7 +90,7 @@ def midpoint(p1,p2):
     return ((p1[0]+p2[0])/2,(p1[1]+p2[1])/2)
 
 def load_traffic_locs(path,graph):
-    fin = '{}trafficMetaData.csv'.format(path)
+    fin = '{}traffic/trafficMetaData.csv'.format(path)
     df = pd.read_csv(fin)
     for index, row in df.iterrows():
         p1 = (row['POINT_1_LAT'],row['POINT_1_LNG'])
@@ -99,8 +99,17 @@ def load_traffic_locs(path,graph):
         new_node.add_tag('traffic')
         graph.add_node(new_node)        
 
+def load_library_locs(path,graph):
+    fin = '{}library_events/aarhus_libraryEvents.csv'.format(path)
+    df = pd.read_csv(fin)
+    for index, row in df.iterrows():
+        new_node = sc_lib.node(row['lid'],(row['latitude'],row['longitude']))
+        new_node.add_tag('library')
+        graph.add_node(new_node)        
+
 def load_aarhus_data(path):
     graph = sc_lib.graph()
     load_parking_locs(path,graph)
     load_traffic_locs(path,graph)
+    load_library_locs(path,graph)
     return graph

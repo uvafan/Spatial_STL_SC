@@ -38,8 +38,11 @@ class node:
         self.tags.add(tag)
 
     #for sets
+    def __eq__(self,other):
+        return self.ID == other.ID and self.coordinates == other.coordinates
+
     def __hash__(self):
-        return hash(self.ID)
+        return hash(self.ID) ^ hash(self.coordinates)
    
 class edge:
     def __init__(self, ID, coordinates):
@@ -49,28 +52,30 @@ class edge:
         self.coordinates = coordinates    
 
     #for sets
+    def __eq__(self,other):
+        return self.ID == other.ID and self.coordinates == other.coordinates
+
     def __hash__(self):
-        return hash(self.ID)
+        return hash(self.ID) ^ hash(self.coordinates)
     
 class graph:
     def __init__(self):
         self.nodes = set()
         self.edges = set()
-        self.node_dict = dict()
+        #self.node_dict = dict()
         self.edge_dict = dict()
         self.df = pd.DataFrame() 
 
     def add_edge(self,edge):
-        if edge.ID not in self.edge_dict:
+        if edge not in self.edges:
             self.edges.add(edge)
             self.edge_dict[edge.ID] = edge
             return True
         return False
 
     def add_node(self, node):
-        if node.ID not in self.node_dict:
+        if node not in self.nodes:
             self.nodes.add(node)
-            self.node_dict[node.ID] = node
             return True
         return False
 
