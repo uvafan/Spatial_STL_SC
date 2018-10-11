@@ -37,5 +37,5 @@ def test_sstl(graph):
     print(ans)
     #ans = checker.check_formula('A[0,60](W{school}(<min[0,1],temperature>(15,inf)))')
 
-graph = example_chicago()
+graph = example_aarhus()
 #test_sstl(graph)

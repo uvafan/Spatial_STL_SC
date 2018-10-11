@@ -25,6 +25,7 @@ class node:
         self.data_id = None
         self.intersections = tuple()
         self.df = pd.DataFrame()
+        self.data_node = True
 
     def __str__(self):
         ret = 'ID: {} Coordinates: {}'.format(self.ID,self.coordinates)
@@ -106,6 +107,7 @@ class graph:
                 point = (geo.centroid.y,geo.centroid.x)
             new_node = node(row['osmid'],point)
             new_node.add_tag(row['amenity'])
+            new_node.data_node = False
             self.add_node(new_node)
 
     #add OSM nodes within distance dist of p, assign data to them 

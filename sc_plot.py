@@ -17,14 +17,21 @@ Loads in nodes according to their coordinates, edges connecting those coordinate
     which are satisfied, and red to represent those unsatisfied.
 '''
 def plot(graph,tag_to_color,directed=True,): 
-    color_to_nodes = defaultdict(list)
+    color_to_nodes_data = defaultdict(list)
+    color_to_nodes_pois = defaultdict(list)
     plot_edges = list()
     for node in graph.nodes: 
         node_info = {'lon':node.coordinates[1], 'lat':node.coordinates[0]}
         color = (0,0,0)
-        if len(node.tags) and node.tags[0] in tag_to_color:
-            color = tag_to_color[node.tags[0]]
-        color_to_nodes[color].append(node_info)
+        if len(node.tags):
+            if node.tags[0] in tag_to_color:
+                color = tag_to_color[node.tags[0]]
+            else:
+                continue
+        if node.data_node:
+            color_to_nodes_data[color].append(node_info)
+        else:
+            color_to_nodes_pois[color].append(node_info)
         neighbors = node.successors
         if not directed:
             neighbors = neighbors.union(node.predecessors)
@@ -47,10 +54,16 @@ def plot(graph,tag_to_color,directed=True,):
                         alpha=30,
                         linewidth=3)
 
-    for color, nodes_list in color_to_nodes.items():
+    for color, nodes_list in color_to_nodes_pois.items():
         nodes_df = pd.DataFrame(nodes_list)
         color = list(color)
         color.append(255)
         geoplotlib.dot(nodes_df,color=color)
-    
+   
+    for color, nodes_list in color_to_nodes_data.items():
+        nodes_df = pd.DataFrame(nodes_list)
+        color = list(color)
+        color.append(255)
+        geoplotlib.dot(nodes_df,color=color)
+
     geoplotlib.show()
