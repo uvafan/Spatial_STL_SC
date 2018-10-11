@@ -8,7 +8,7 @@ import osmnx as ox
 import pandas as pd
 import geoplotlib
 import random
-
+from collections import defaultdict
 
 '''
 Loads in nodes according to their coordinates, edges connecting those coordinates
@@ -16,29 +16,15 @@ Loads in nodes according to their coordinates, edges connecting those coordinate
     Green is used to represent nodes (using the tf_satisfied attribute of the node)
     which are satisfied, and red to represent those unsatisfied.
 '''
-def plot(graph,directed=True,blue=[],red=[]): 
-    blue_plot_nodes = []
-    green_plot_nodes = []
-    red_plot_nodes = []
-    plot_edges = []
+def plot(graph,tag_to_color,directed=True,): 
+    color_to_nodes = defaultdict(list)
+    plot_edges = list()
     for node in graph.nodes: 
         node_info = {'lon':node.coordinates[1], 'lat':node.coordinates[0]}
-        assigned = False
-        for tag in blue:
-            if tag in node.tags:
-                blue_plot_nodes.append(node_info)
-                assigned = True
-                break
-        if assigned:
-            continue
-        for tag in red:
-            if tag in node.tags:
-                red_plot_nodes.append(node_info)
-                assigned = True
-                break
-        if assigned:
-            continue
-        green_plot_nodes.append(node_info)
+        color = (0,0,0)
+        if len(node.tags) and node.tags[0] in tag_to_color:
+            color = tag_to_color[node.tags[0]]
+        color_to_nodes[color].append(node_info)
         neighbors = node.successors
         if not directed:
             neighbors = neighbors.union(node.predecessors)
@@ -49,9 +35,6 @@ def plot(graph,directed=True,blue=[],red=[]):
             plot_edges.append({'start_lon':node.coordinates[1], 'end_lon':successor.coordinates[1],
                                'start_lat':node.coordinates[0], 'end_lat':successor.coordinates[0]})
     
-    blue_df_nodes = pd.DataFrame(blue_plot_nodes)
-    green_df_nodes = pd.DataFrame(green_plot_nodes)
-    red_df_nodes = pd.DataFrame(red_plot_nodes)
     df_edges = pd.DataFrame(plot_edges)
   
     if not df_edges.empty: 
@@ -64,11 +47,10 @@ def plot(graph,directed=True,blue=[],red=[]):
                         alpha=30,
                         linewidth=3)
 
-    if not red_df_nodes.empty:
-        geoplotlib.dot(red_df_nodes, color=[255,0,0,255])
-    if not green_df_nodes.empty:
-        geoplotlib.dot(green_df_nodes, color=[0,255,0,255])
-    if not blue_df_nodes.empty:
-        geoplotlib.dot(blue_df_nodes, color=[0,0,255,255])
+    for color, nodes_list in color_to_nodes.items():
+        nodes_df = pd.DataFrame(nodes_list)
+        color = list(color)
+        color.append(255)
+        geoplotlib.dot(nodes_df,color=color)
     
     geoplotlib.show()

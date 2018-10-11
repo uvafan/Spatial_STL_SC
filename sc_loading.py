@@ -37,16 +37,26 @@ def load_chicago_data(path, abridged=False, sample=float('inf')):
     perf.checkpoint('loaded csvs')
     graph = sc_lib.graph()
     ctr = 0
+    minLat = float('inf')
+    maxLat = float('-inf')
+    minLon = float('inf')
+    maxLon = float('-inf')
     for index, row in node_df.iterrows():
         if isinstance(row['end_timestamp'],str):
             continue
         p = (row['lat'],row['lon'])
+        minLat = min(minLat,row['lat'])
+        minLon = min(minLon,row['lon'])
+        maxLon = max(maxLon,row['lon'])
+        maxLat = max(maxLat,row['lat'])
         node_df = data_df.loc[data_df['node_id']==row['node_id']]
-        graph.add_OSMnx_data_within_dist(p,data_id=row['node_id'],data_df=node_df)
-        graph.add_OSMnx_pois(p,amenities=['school'])
+        new_node = sc_lib.node(row['node_id'],p)
+        graph.add_node(new_node)
+        graph.add_OSMnx_pois(amenities=['school','theatre','hospital'],p=p)
         ctr+=1
         if ctr == sample:
             break 
+    #graph.add_OSMnx_pois(amenities=['school'],north=maxLat,south=minLat,east=maxLon,west=minLon)
     perf.checkpoint('loaded osmnx data')
     return graph 
 
@@ -79,9 +89,14 @@ def load_library_locs(path,graph):
         new_node.add_tag('library')
         graph.add_node(new_node)        
 
+def add_pois(graph):
+    p = graph.centroid()
+    graph.add_OSMnx_pois(amenities=['school','theatre','hospital'],p=p,dist=5000)
+
 def load_aarhus_data(path):
     graph = sc_lib.graph()
     load_parking_locs(path,graph)
     load_traffic_locs(path,graph)
     load_library_locs(path,graph)
+    add_pois(graph)
     return graph
