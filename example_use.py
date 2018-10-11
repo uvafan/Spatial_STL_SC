@@ -26,7 +26,7 @@ def example_aarhus():
 
 def example_chicago():
     path = 'chicago-complete.daily.2018-09-08/'
-    graph = sc_loading.load_chicago_data(path,abridged=True,sample=5)
+    graph = sc_loading.load_chicago_data(path,abridged=True,sample=50)
     sc_plot.plot(graph,tagToColor)
     return graph
 
@@ -37,5 +37,5 @@ def test_sstl(graph):
     print(ans)
     #ans = checker.check_formula('A[0,60](W{school}(<min[0,1],temperature>(15,inf)))')
 
-graph = example_aarhus()
+graph = example_chicago()
 #test_sstl(graph)

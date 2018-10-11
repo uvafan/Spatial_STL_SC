@@ -52,12 +52,11 @@ def load_chicago_data(path, abridged=False, sample=float('inf')):
         node_df = data_df.loc[data_df['node_id']==row['node_id']]
         new_node = sc_lib.node(row['node_id'],p)
         graph.add_node(new_node)
-        graph.add_OSMnx_pois(amenities=['school','theatre','hospital'],p=p)
         ctr+=1
         if ctr == sample:
             break 
-    #graph.add_OSMnx_pois(amenities=['school'],north=maxLat,south=minLat,east=maxLon,west=minLon)
-    perf.checkpoint('loaded osmnx data')
+    add_pois(graph,amenities=['school','theatre','hospital'],dist=20000)
+    perf.checkpoint('loaded data into graph')
     return graph 
 
 def load_parking_locs(path,graph):
@@ -89,14 +88,14 @@ def load_library_locs(path,graph):
         new_node.add_tag('library')
         graph.add_node(new_node)        
 
-def add_pois(graph):
+def add_pois(graph,amenities=None,dist=5000):
     p = graph.centroid()
-    graph.add_OSMnx_pois(amenities=['school','theatre','hospital'],p=p,dist=5000)
+    graph.add_OSMnx_pois(amenities=['school','theatre','hospital'],p=p,dist=dist)
 
 def load_aarhus_data(path):
     graph = sc_lib.graph()
     load_parking_locs(path,graph)
     load_traffic_locs(path,graph)
     load_library_locs(path,graph)
-    add_pois(graph)
+    add_pois(graph,amenities=['school','theatre','hospital'])
     return graph
