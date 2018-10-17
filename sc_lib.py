@@ -22,15 +22,11 @@ class node:
         self.tags = list()
         self.predecessors = set()
         self.successors = set()
-        self.data_id = None
         self.intersections = tuple()
-        self.df = pd.DataFrame()
         self.data_node = True
 
     def __str__(self):
         ret = 'ID: {} Coordinates: {}'.format(self.ID,self.coordinates)
-        ret += '\ndata_id: {}'.format(self.data_id)
-        ret += '\ndf:\n{}'.format(self.df)
         ret += '\ntags: {}'.format(self.tags)
         return ret
 
@@ -70,6 +66,7 @@ class edge:
 class graph:
     def __init__(self,city):
         self.nodes = set()
+        self.data_nodes = set()
         self.edges = set()
         self.edge_dict = dict()
         self.city = city
@@ -84,6 +81,8 @@ class graph:
     def add_node(self, node):
         if node not in self.nodes:
             self.nodes.add(node)
+            if node.data_node:
+                self.data_nodes.add(node)
             return True
         return False
 

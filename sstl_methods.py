@@ -6,36 +6,50 @@ Preliminary Model Checking Functions
 import sc_lib
 import pandas as pd
 import numpy as np
+import os
 
 class sstl_checker:
     def __init__(self, G):
         self.graph = G
         self.loc = tuple()
+        self.day = ''
 
     def set_location(self,coords):
         self.loc = coords
 
-    def check_formula(self,formulaStr,nodes=None,time_range=None,check_all=True):
+    def set_day(self,day):
+        self.day = day
+        self.path = 'data/{c}/{d}'.format(c=self.graph.city,d=day)
+
+    def nodes_with_data(self,nodes):
+        ret = set()
+        dirs = os.listdir(self.path)
+        for node in nodes:
+            if node.ID in dirs:
+                ret.add(node)
+        return ret
+
+    def check_specification(self,specStr,nodes=None,time_range=None,check_all=True):
         if not nodes:
-            nodes = self.graph.nodes
+            nodes = self.nodes_with_data(self.graph.data_nodes)
         #Always
-        if formulaStr[0] == 'A':
+        if specStr[0] == 'A':
             pass
         #Eventually
-        elif formulaStr[0] == 'E':
+        elif specStr[0] == 'E':
             pass
         #Everywhere
-        elif formulaStr[0] == 'W':
+        elif specStr[0] == 'W':
             pass
         #Somewhere
-        elif formulaStr[0] == 'S':
+        elif specStr[0] == 'S':
             pass
         #Aggregation   
-        elif formulaStr[0] == '<':
-            aggregationOp,dist_range,param,val_range = self.processAggregationStr(formulaStr[1:])
+        elif specStr[0] == '<':
+            aggregationOp,dist_range,param,val_range = self.processAggregationStr(specStr[1:])
             return self.checkValues(nodes,time_range,aggregationOp,dist_range,param,val_range,check_all)
         else:
-            print('Invalid formula: {}'.format(formulaStr))
+            print('Invalid spec: {}'.format(specStr))
             return False
 
     def rangeStrToTuple(self,s):
@@ -61,21 +75,20 @@ class sstl_checker:
         return aggregationOp,distRange,param,self.rangeStrToTuple(valRange[1:-1])
 
     def checkValues(self,nodes,time_range,aggregationOp,dist_range,param,val_range,check_all): 
-        satisfied = True
-        data_ids_checked = set()
+        satisfied = check_all
         for node in nodes:
-            if node.data_id in data_ids_checked:
+            df = pd.DataFrame()
+            try:
+                df = pd.read_csv('{pat}/{n}/{par}'.format(pat=self.path,n=node.ID,par=param))
+            except:
                 continue
-            data_ids_checked.add(node.data_id)
-            df = node.df
-            if df.empty:
-                continue
-            df = df.loc[df['parameter']==param]
             if time_range:
                 df = df[time_range[0]:time_range[1]]
             if not aggregationOp:
                 if check_all:
                     minVal = np.min(df['value_hrf'].astype(float))
+                    print(minVal)
+                    print(node)
                     maxVal = np.max(df['value_hrf'].astype(float))
                     if minVal < val_range[0] or maxVal > val_range[1]:
                         satisfied = False

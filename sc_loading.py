@@ -47,8 +47,6 @@ def load_chicago_data_day(path, abridged=False, sample=float('inf')):
     day_path = 'data/chicago/{}'.format(day_str)
     make_dir(day_path)
     for index, row in node_df.iterrows():
-        if isinstance(row['end_timestamp'],str):
-            continue
         new_node_df = data_df.loc[data_df['node_id']==row['node_id']]
         if new_node_df.empty:
             continue
@@ -60,11 +58,27 @@ def load_chicago_data_day(path, abridged=False, sample=float('inf')):
         ctr+=1
         if ctr==sample:
             break
-    '''
-    graph = sc_lib.graph('chicago')
-    add_pois(graph,amenities=['school','theatre','hospital'],dist=5000)
-    '''
     perf.checkpoint('loaded data')
+
+def create_chicago_graph(path):
+    perf = performance.performance_tester()
+    node_df = pd.read_csv('{}nodes.csv'.format(path))
+    graph = sc_lib.graph('chicago')
+    for index, row in node_df.iterrows():
+        p = (row['lat'],row['lon'])
+        new_node = sc_lib.node(row['node_id'],p)
+        graph.add_node(new_node)
+    add_pois(graph,amenities=['school','theatre','hospital'],dist=1000)
+    perf.checkpoint('created graph')
+    return graph
+
+def load_parking_locs(path,graph):
+    fin = '{}parking/aarhus_parking_address.csv'.format(path)
+    df = pd.read_csv(fin)
+    start = len(graph.nodes)
+    for index, row in df.iterrows():
+        new_node = sc_lib.node(row['garagecode'],(row['latitude'],row['longitude']))
+        new_node.add_tag('parking')
 
 def load_parking_locs(path,graph):
     fin = '{}parking/aarhus_parking_address.csv'.format(path)
