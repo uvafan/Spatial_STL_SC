@@ -10,6 +10,7 @@ import numpy as np
 import math
 import osmnx as ox
 import sys
+import os
 from collections import defaultdict
 
 def load_nyc_data(graph, fin):
@@ -27,7 +28,13 @@ def load_nyc_data(graph, fin):
         graph.dataframe.append(node.data)    
     graph.dataframe = pd.concat(graph.dataframe)
 
-def load_chicago_data(path, abridged=False, sample=float('inf')):
+def make_dir(path):
+    try:
+        os.mkdir(path)
+    except FileExistsError:
+        pass
+
+def load_chicago_data_day(path, abridged=False, sample=float('inf')):
     perf = performance.performance_tester()
     data_filename = 'data.csv' if not abridged else 'abridged_data.csv'
     node_df = pd.read_csv('{}nodes.csv'.format(path))
@@ -35,37 +42,39 @@ def load_chicago_data(path, abridged=False, sample=float('inf')):
     data_df['timestamp'] = pd.to_datetime(data_df['timestamp'])
     data_df = data_df.set_index('timestamp')
     perf.checkpoint('loaded csvs')
-    graph = sc_lib.graph()
     ctr = 0
-    minLat = float('inf')
-    maxLat = float('-inf')
-    minLon = float('inf')
-    maxLon = float('-inf')
+    day_str = str(data_df.index[0]).split()[0]
+    day_path = 'data/chicago/{}'.format(day_str)
+    make_dir(day_path)
     for index, row in node_df.iterrows():
         if isinstance(row['end_timestamp'],str):
             continue
-        p = (row['lat'],row['lon'])
-        minLat = min(minLat,row['lat'])
-        minLon = min(minLon,row['lon'])
-        maxLon = max(maxLon,row['lon'])
-        maxLat = max(maxLat,row['lat'])
-        node_df = data_df.loc[data_df['node_id']==row['node_id']]
-        new_node = sc_lib.node(row['node_id'],p)
-        graph.add_node(new_node)
+        new_node_df = data_df.loc[data_df['node_id']==row['node_id']]
+        if new_node_df.empty:
+            continue
+        node_path = '{dp}/{i}'.format(dp=day_path,i=row['node_id'])
+        make_dir(node_path)
+        for param in new_node_df['parameter'].unique():
+            param_df = new_node_df.loc[new_node_df['parameter']==param]
+            param_df.to_csv('{np}/{p}'.format(np=node_path,p=param))
         ctr+=1
-        if ctr == sample:
-            break 
-    add_pois(graph,amenities=['school','theatre','hospital'],dist=20000)
-    perf.checkpoint('loaded data into graph')
-    return graph 
+        if ctr==sample:
+            break
+    '''
+    graph = sc_lib.graph('chicago')
+    add_pois(graph,amenities=['school','theatre','hospital'],dist=5000)
+    '''
+    perf.checkpoint('loaded data')
 
 def load_parking_locs(path,graph):
     fin = '{}parking/aarhus_parking_address.csv'.format(path)
     df = pd.read_csv(fin)
+    start = len(graph.nodes)
     for index, row in df.iterrows():
         new_node = sc_lib.node(row['garagecode'],(row['latitude'],row['longitude']))
         new_node.add_tag('parking')
         graph.add_node(new_node)        
+    #print('parking: {} nodes'.format(len(graph.nodes)-start))
 
 def midpoint(p1,p2):
     return ((p1[0]+p2[0])/2,(p1[1]+p2[1])/2)
@@ -73,20 +82,24 @@ def midpoint(p1,p2):
 def load_traffic_locs(path,graph):
     fin = '{}traffic/trafficMetaData.csv'.format(path)
     df = pd.read_csv(fin)
+    start = len(graph.nodes)
     for index, row in df.iterrows():
         p1 = (row['POINT_1_LAT'],row['POINT_1_LNG'])
         p2 = (row['POINT_2_LAT'],row['POINT_2_LNG'])
         new_node = sc_lib.node(row['extID'],midpoint(p1,p2))
         new_node.add_tag('traffic')
         graph.add_node(new_node)        
+    #print('traffic: {} nodes'.format(len(graph.nodes)-start))
 
 def load_library_locs(path,graph):
     fin = '{}library_events/aarhus_libraryEvents.csv'.format(path)
     df = pd.read_csv(fin)
+    start = len(graph.nodes)
     for index, row in df.iterrows():
         new_node = sc_lib.node(row['lid'],(row['latitude'],row['longitude']))
         new_node.add_tag('library')
         graph.add_node(new_node)        
+    #print('library: {} nodes'.format(len(graph.nodes)-start))
 
 def add_pois(graph,amenities=None,dist=5000):
     p = graph.centroid()

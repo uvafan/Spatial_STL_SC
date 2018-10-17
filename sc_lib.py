@@ -16,7 +16,7 @@ class node:
     def __init__(self, ID, coordinates):
         if isinstance(ID,list):
             ID = tuple(sorted(ID))
-        self.ID = ID
+        self.ID = str(ID)
         self.coordinates = coordinates #(lat,lon)
         self.tf_satisfied = True # whether req is satisfied
         self.tags = list()
@@ -68,10 +68,11 @@ class edge:
         return hash(self.ID) ^ hash(self.coordinates)
     
 class graph:
-    def __init__(self):
+    def __init__(self,city):
         self.nodes = set()
         self.edges = set()
         self.edge_dict = dict()
+        self.city = city
 
     def add_edge(self,edge):
         if edge not in self.edges:
