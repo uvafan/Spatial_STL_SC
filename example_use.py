@@ -44,6 +44,6 @@ def test_sstl(graph):
         print('result of {} is {}'.format(spec,ans))
     #ans = checker.check_formula('A[0,60](W{school}(<min[0,1],temperature>(15,inf)))')
 
-#load_chicago_day('chicago-complete.daily.2018-09-08/')
-graph = get_chicago('chicago-complete.daily.2018-09-08/')
-test_sstl(graph)
+load_chicago_day('chicago-complete.daily.2018-09-08/')
+#graph = get_chicago('chicago-complete.daily.2018-09-08/')
+#test_sstl(graph)

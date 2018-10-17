@@ -43,6 +43,8 @@ def load_chicago_data_day(path, abridged=False, sample=float('inf')):
     data_df = data_df.set_index('timestamp')
     perf.checkpoint('loaded csvs')
     ctr = 0
+    make_dir('data')
+    make_dir('data/chicago')
     day_str = str(data_df.index[0]).split()[0]
     day_path = 'data/chicago/{}'.format(day_str)
     make_dir(day_path)
