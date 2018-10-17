@@ -7,12 +7,17 @@ import sc_lib
 import pandas as pd
 import numpy as np
 import os
+from collections import defaultdict
 
 class sstl_checker:
     def __init__(self, G):
         self.graph = G
         self.loc = tuple()
         self.day = ''
+        self.allowed_sensors = defaultdict(set)
+
+    def set_allowed_sensors(self,param,sensors):
+        self.allowed_sensors[param] = set(sensors)
 
     def set_location(self,coords):
         self.loc = coords
@@ -21,33 +26,29 @@ class sstl_checker:
         self.day = day
         self.path = 'data/{c}/{d}'.format(c=self.graph.city,d=day)
 
-    def nodes_with_data(self,nodes):
-        ret = set()
+    def update_nodes_with_data(self):
+        nodes = self.graph.data_nodes
+        self.nodes_with_data = set()
         dirs = os.listdir(self.path)
         for node in nodes:
             if node.ID in dirs:
-                ret.add(node)
-        return ret
+                self.nodes_with_data.add(node)
 
-    def check_specification(self,specStr,nodes=None,time_range=None,check_all=True):
+    def filter(self,spec_str,nodes,time_range,all_times,all_locs):
+        pass 
+
+    def check_specification(self,spec_str,nodes=None,time_range=None,all_times=True,all_locs=True):
         if not nodes:
-            nodes = self.nodes_with_data(self.graph.data_nodes)
-        #Always
-        if specStr[0] == 'A':
+            nodes = self.graph.nodes
+            self.update_nodes_with_data()
+        #Filter
+        if spec_str[0] == 'A' or spec_str[0] == 'E' or spec_str[0] == 'W' or spec_str[0] == 'S':
             pass
-        #Eventually
-        elif specStr[0] == 'E':
-            pass
-        #Everywhere
-        elif specStr[0] == 'W':
-            pass
-        #Somewhere
-        elif specStr[0] == 'S':
-            pass
+            spec_str,nodes,time_range,all_times,all_locs = self.filter(spec_str,nodes,time_range,all_times,all_locs)
         #Aggregation   
-        elif specStr[0] == '<':
-            aggregationOp,dist_range,param,val_range = self.processAggregationStr(specStr[1:])
-            return self.checkValues(nodes,time_range,aggregationOp,dist_range,param,val_range,check_all)
+        elif spec_str[0] == '<':
+            aggregation_op,dist_range,param,val_range = self.processAggregationStr(spec_str[1:])
+            return self.checkValues(nodes,time_range,aggregation_op,dist_range,param,val_range,all_times,all_locs)
         else:
             print('Invalid spec: {}'.format(specStr))
             return False
@@ -66,30 +67,43 @@ class sstl_checker:
             aggregation,param = specSplit[0],specSplit[1]
         else:
             param = specification
-        aggregationOp = None 
-        distRange = None
+        aggregation_op = None 
+        dist_range = None
         if aggregation:
             aggSplit = aggregation.split('[')
-            aggregationOp = aggSplit[0]
-            distRange = self.rangeStrToTuple(aggSplit[1][:-1])
-        return aggregationOp,distRange,param,self.rangeStrToTuple(valRange[1:-1])
+            aggregation_op = aggSplit[0]
+            dist_range = self.rangeStrToTuple(aggSplit[1][:-1])
+        return aggregation_op,dist_range,param,self.rangeStrToTuple(valRange[1:-1])
 
-    def checkValues(self,nodes,time_range,aggregationOp,dist_range,param,val_range,check_all): 
-        satisfied = check_all
+    def check_aggregation(aggregation_op,param,dist_range,node,time_range,val_range,all_times):
+        return True
+
+    def checkValues(self,nodes,time_range,aggregation_op,dist_range,param,val_range,all_times,all_locs): 
+        satisfied = all_locs
         for node in nodes:
-            df = pd.DataFrame()
-            try:
-                df = pd.read_csv('{pat}/{n}/{par}'.format(pat=self.path,n=node.ID,par=param))
-            except:
-                continue
-            if time_range:
-                df = df[time_range[0]:time_range[1]]
-            if not aggregationOp:
-                if check_all:
-                    minVal = np.min(df['value_hrf'].astype(float))
-                    print(minVal)
-                    print(node)
-                    maxVal = np.max(df['value_hrf'].astype(float))
+            loc_satisfied = all_times
+            if not aggregation_op and node.data_node:
+                df = pd.DataFrame()
+                try:
+                    df = pd.read_csv('{pat}/{n}/{par}'.format(pat=self.path,n=node.ID,par=param))
+                except Exception:
+                    continue
+                if time_range:
+                    df = df[time_range[0]:time_range[1]]
+                if len(self.allowed_sensors[param]):
+                    df = df[df['sensor'].isin(self.allowed_sensors[param])]
+                minVal = np.min(df['value_hrf'].astype(float))
+                maxVal = np.max(df['value_hrf'].astype(float))
+                if all_times:
                     if minVal < val_range[0] or maxVal > val_range[1]:
-                        satisfied = False
+                        loc_satisfied = False
+                else:
+                    if minVal >= val_range[0] or maxVal <= val_range[1]:
+                        loc_satisfied = True
+            if aggregation_op:
+                loc_satisfied = check_aggregation(aggregation_op,param,dist_range,node,time_range,val_range,all_times)
+            if all_locs and not loc_satisfied:
+                return False
+            if not all_locs and loc_satisfied:
+                return True
         return satisfied

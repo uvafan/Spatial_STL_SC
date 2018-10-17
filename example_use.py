@@ -37,13 +37,15 @@ def test_sstl(graph):
     checker = sstl_methods.sstl_checker(graph)
     checker.set_location(graph.a_node().coordinates)
     checker.set_day('2018-09-08')
+    checker.set_allowed_sensors('temperature',['at0','at1','at2','at3'])
     f = open('checks.txt','r')
     for line in f:
         spec = line[:-1]
+        if spec == 'END':
+            break
         ans = checker.check_specification(spec)
         print('result of {} is {}'.format(spec,ans))
-    #ans = checker.check_formula('A[0,60](W{school}(<min[0,1],temperature>(15,inf)))')
 
-load_chicago_day('chicago-complete.daily.2018-09-08/')
-#graph = get_chicago('chicago-complete.daily.2018-09-08/')
-#test_sstl(graph)
+#load_chicago_day('chicago-complete.daily.2018-09-08/')
+graph = get_chicago('chicago-complete.daily.2018-09-08/')
+test_sstl(graph)
