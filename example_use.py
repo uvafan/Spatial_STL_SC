@@ -31,7 +31,7 @@ def get_chicago(path,plot=False):
     return graph
 
 def load_chicago_day(path):
-    sc_loading.load_chicago_data_day(path,abridged=True)
+    sc_loading.load_chicago_data_day(path)
 
 def test_sstl(graph):
     checker = sstl_methods.sstl_checker(graph)
@@ -48,4 +48,4 @@ def test_sstl(graph):
 
 #load_chicago_day('chicago-complete.daily.2018-09-08/')
 graph = get_chicago('chicago-complete.daily.2018-09-08/')
-test_sstl(graph)
+#test_sstl(graph)

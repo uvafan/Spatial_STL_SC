@@ -11,6 +11,7 @@ from collections import defaultdict
 from datetime import datetime
 from shapely.geometry import Point
 from shapely.geometry import MultiPoint
+import geopy
 
 class node:
     def __init__(self, ID, coordinates):
@@ -24,6 +25,10 @@ class node:
         self.successors = set()
         self.intersections = tuple()
         self.data_node = True
+
+    #returns distance between self and other in km
+    def dist_to(self,other):
+        return geopy.distance.vincenty(self.coordinates,other.coordinates).km
 
     def __str__(self):
         ret = 'ID: {} Coordinates: {}'.format(self.ID,self.coordinates)

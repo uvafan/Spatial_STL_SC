@@ -77,6 +77,14 @@ class sstl_checker:
 
     def check_aggregation(aggregation_op,param,dist_range,node,time_range,val_range,all_times):
         return True
+        '''
+        satisfied = all_times
+        for to_check in self.nodes_with_data:
+            dist = node.dist_to(to_check)
+            if dist < dist_range[0] or dist > dist_range[1]:
+                continue
+        return satisfied
+        '''
 
     def checkValues(self,nodes,time_range,aggregation_op,dist_range,param,val_range,all_times,all_locs): 
         satisfied = all_locs

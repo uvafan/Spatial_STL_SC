@@ -11,6 +11,7 @@ import math
 import osmnx as ox
 import sys
 import os
+import datetime
 from collections import defaultdict
 
 def load_nyc_data(graph, fin):
@@ -48,7 +49,12 @@ def load_chicago_data_day(path, abridged=False, sample=float('inf')):
     day_str = str(data_df.index[0]).split()[0]
     day_path = 'data/chicago/{}'.format(day_str)
     make_dir(day_path)
+    date_rng = pd.date_range(start=day_str,end=pd.to_datetime(day_str)+datetime.timedelta(days=1),freq='min')
+    agg_dfs = dict()
+    for param in data_df['parameter'].unique():
+        agg_dfs[param] = pd.DataFrame(index=date_rng)
     for index, row in node_df.iterrows():
+        perf.checkpoint('processed node')
         new_node_df = data_df.loc[data_df['node_id']==row['node_id']]
         if new_node_df.empty:
             continue
@@ -57,9 +63,24 @@ def load_chicago_data_day(path, abridged=False, sample=float('inf')):
         for param in new_node_df['parameter'].unique():
             param_df = new_node_df.loc[new_node_df['parameter']==param]
             param_df.to_csv('{np}/{p}'.format(np=node_path,p=param))
+            try:
+                f = float(param_df['value_hrf'][0])
+                agg_dfs[param][row['node_id']] = np.nan
+            except ValueError:
+                #don't care about non-numeric for now
+                continue
+            for tm, prow in param_df.iterrows():
+                minute = tm - datetime.timedelta(seconds=tm.second,microseconds=tm.microsecond)
+                if np.isnan(agg_dfs[param][row['node_id']][minute]):
+                    try:
+                        agg_dfs[param].at[minute,row['node_id']] = prow['value_hrf']
+                    except ValueError:
+                        continue
         ctr+=1
         if ctr==sample:
             break
+    for param in data_df['parameter'].unique():
+        agg_dfs[param].to_csv('{dp}/{p}'.format(dp=day_path,p=param))
     perf.checkpoint('loaded data')
 
 def create_chicago_graph(path):
