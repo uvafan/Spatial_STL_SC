@@ -30,14 +30,19 @@ def get_chicago(path,plot=False):
         sc_plot.plot(graph,tagToColor)
     return graph
 
-def load_chicago_day(path):
-    sc_loading.load_chicago_data_day(path)
+trusted_sensors = {
+    'temperature': {'at0','at1','at2','at3','sht25'}
+}
+
+use_sensor_as_param = {'concentration'}
+
+def load_chicago_day(path,abridged=False):
+    sc_loading.load_chicago_data_day(path,trusted_sensors,use_sensor_as_param,abridged=abridged)
 
 def test_sstl(graph):
     checker = sstl_methods.sstl_checker(graph)
     checker.set_location(graph.a_node().coordinates)
     checker.set_day('2018-09-08')
-    checker.set_allowed_sensors('temperature',['at0','at1','at2','at3'])
     f = open('checks.txt','r')
     for line in f:
         spec = line[:-1]
@@ -46,6 +51,11 @@ def test_sstl(graph):
         ans = checker.check_specification(spec)
         print('result of {} is {}'.format(spec,ans))
 
-#load_chicago_day('chicago-complete.daily.2018-09-08/')
-graph = get_chicago('chicago-complete.daily.2018-09-08/')
+#load_chicago_day('chicago-complete.daily.2018-09-08/',abridged=False)
+#graph = get_chicago('chicago-complete.daily.2018-09-08/')
+sc_plot.plot_param('chicago','2018-09-08','h2s')
+sc_plot.plot_param('chicago','2018-09-08','no2')
+sc_plot.plot_param('chicago','2018-09-08','o3')
+sc_plot.plot_param('chicago','2018-09-08','humidity')
+sc_plot.plot_param('chicago','2018-09-08','visible_light_intensity')
 #test_sstl(graph)

@@ -8,6 +8,7 @@ import osmnx as ox
 import pandas as pd
 import geoplotlib
 import random
+import matplotlib.pyplot as plt
 from collections import defaultdict
 
 '''
@@ -67,3 +68,11 @@ def plot(graph,tag_to_color,directed=True,):
         geoplotlib.dot(nodes_df,color=color)
 
     geoplotlib.show()
+
+def plot_param(city,day,param):
+    df = pd.read_csv('data/{c}/{d}/{p}'.format(c=city,d=day,p=param),index_col=0)
+    node_id = df.columns[0]
+    plt.title('{p} on {d}'.format(p=param,d=day))
+    plt.plot(df.index,df[node_id])
+    plt.show()
+

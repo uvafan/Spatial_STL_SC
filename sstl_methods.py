@@ -14,10 +14,6 @@ class sstl_checker:
         self.graph = G
         self.loc = tuple()
         self.day = ''
-        self.allowed_sensors = defaultdict(set)
-
-    def set_allowed_sensors(self,param,sensors):
-        self.allowed_sensors[param] = set(sensors)
 
     def set_location(self,coords):
         self.loc = coords
@@ -98,8 +94,6 @@ class sstl_checker:
                     continue
                 if time_range:
                     df = df[time_range[0]:time_range[1]]
-                if len(self.allowed_sensors[param]):
-                    df = df[df['sensor'].isin(self.allowed_sensors[param])]
                 minVal = np.min(df['value_hrf'].astype(float))
                 maxVal = np.max(df['value_hrf'].astype(float))
                 if all_times:
