@@ -25,7 +25,7 @@ def example_aarhus():
     return graph
 
 def get_chicago(path,plot=False):
-    graph = sc_loading.create_chicago_graph(path)
+    graph = sc_loading.create_chicago_graph(path,dist=10000)
     if plot:
         sc_plot.plot(graph,tagToColor)
     return graph
@@ -50,7 +50,7 @@ def test_sstl(graph):
         ans = checker.check_specification(spec)
         print('result of {s} is {a}'.format(s=spec,a=ans))
 
-load_chicago_day('chicago-complete.daily.2018-09-08/',abridged=False)
+#load_chicago_day('chicago-complete.daily.2018-09-08/',abridged=False)
 #sc_plot.plot_param('chicago','2018-09-08','h2s')
 #sc_plot.plot_param('chicago','2018-09-08','no2')
 #sc_plot.plot_param('chicago','2018-09-08','o3')
