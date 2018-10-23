@@ -50,22 +50,20 @@ def load_chicago_data_day(path, trusted_sensors, use_sensor_as_param, abridged=F
     day_path = 'data/chicago/{}'.format(day_str)
     make_dir(day_path)
     date_rng = pd.date_range(start=day_str,end=pd.to_datetime(day_str)+datetime.timedelta(days=1),freq='min')
-    agg_dfs = dict()
+    param_dfs = dict()
     for param in data_df['parameter'].unique():
         if param in use_sensor_as_param:
             sensors = data_df.loc[data_df['parameter']==param]['sensor'].unique()
             for sensor in sensors:
-                agg_dfs[sensor] = pd.DataFrame(index=date_rng)
+                param_dfs[sensor] = pd.DataFrame(index=date_rng)
         else:
-            agg_dfs[param] = pd.DataFrame(index=date_rng)
+            param_dfs[param] = pd.DataFrame(index=date_rng)
     for index, row in node_df.iterrows():
         perf.checkpoint('processed node')
         node_id = row['node_id']
         new_node_df = data_df.loc[data_df['node_id']==node_id]
         if new_node_df.empty:
             continue
-        node_path = '{dp}/{i}'.format(dp=day_path,i=node_id)
-        make_dir(node_path)
         for param in new_node_df['parameter'].unique():
             param_df = new_node_df.loc[new_node_df['parameter']==param]
             if param in trusted_sensors:
@@ -76,29 +74,29 @@ def load_chicago_data_day(path, trusted_sensors, use_sensor_as_param, abridged=F
                 sensors = param_df['sensor'].unique()
                 for sensor in sensors:
                     sensor_df = param_df.loc[param_df['sensor']==sensor]
-                    process_param_df(node_path,sensor,sensor_df,agg_dfs,node_id)
+                    process_param_df(sensor,sensor_df,param_dfs,node_id)
             else:
-                process_param_df(node_path,param,param_df,agg_dfs,node_id)
+                process_param_df(param,param_df,param_dfs,node_id)
         ctr+=1
         if ctr==sample:
             break
-    for param in agg_dfs:
-        agg_dfs[param].to_csv('{dp}/{p}'.format(dp=day_path,p=param))
-    perf.checkpoint('wrote aggregation dfs to csvs')
+    for param in param_dfs:
+        param_dfs[param].to_csv('{dp}/{p}'.format(dp=day_path,p=param))
+    perf.checkpoint('wrote param dfs to csvs')
 
-def process_param_df(node_path,param,param_df,agg_dfs,node_id):
+def process_param_df(param,param_df,param_dfs,node_id):
     hrf = True
     try:
         f = float(param_df['value_hrf'][0])
         if np.isnan(f):
             raise ValueError
-        agg_dfs[param][node_id] = np.nan
+        param_dfs[param][node_id] = np.nan
     except ValueError:
         try:
             f = float(param_df['value_raw'][0])
             if np.isnan(f):
                 raise ValueError
-            agg_dfs[param][node_id] = np.nan
+            param_dfs[param][node_id] = np.nan
             hrf=False
         except ValueError:
             #don't care about non-numeric for now
@@ -108,18 +106,17 @@ def process_param_df(node_path,param,param_df,agg_dfs,node_id):
         if col != keep:
             param_df = param_df.drop(col,axis=1)
     param_df.columns = ['value']
-    param_df.to_csv('{np}/{p}'.format(np=node_path,p=param))
     for tm, prow in param_df.iterrows():
         minute = tm - datetime.timedelta(seconds=tm.second,microseconds=tm.microsecond)
-        if np.isnan(agg_dfs[param][node_id][minute]):
+        if np.isnan(param_dfs[param][node_id][minute]):
             try:
-                agg_dfs[param].at[minute,node_id] = prow['value']
+                param_dfs[param].at[minute,node_id] = prow['value']
             except ValueError:
                 continue
 
 def create_chicago_graph(path):
     perf = performance.performance_tester()
-    node_df = pd.read_csv('{}nodes.csv'.format(path))
+    node_df = pd.read_csv('{}/nodes.csv'.format(path))
     graph = sc_lib.graph('chicago')
     for index, row in node_df.iterrows():
         p = (row['lat'],row['lon'])

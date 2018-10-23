@@ -71,7 +71,7 @@ def plot(graph,tag_to_color,directed=True,):
 
 def plot_param(city,day,param):
     df = pd.read_csv('data/{c}/{d}/{p}'.format(c=city,d=day,p=param),index_col=0)
-    node_id = df.columns[0]
+    node_id = df.columns[1]
     plt.title('{p} on {d}'.format(p=param,d=day))
     plt.plot(df.index,df[node_id])
     plt.show()

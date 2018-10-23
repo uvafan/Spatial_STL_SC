@@ -5,7 +5,7 @@ Eli Lifland
 
 import osmnx as ox
 import sc_loading
-import sstl_methods
+import sstl
 import sc_plot
 import random
 
@@ -40,22 +40,21 @@ def load_chicago_day(path,abridged=False):
     sc_loading.load_chicago_data_day(path,trusted_sensors,use_sensor_as_param,abridged=abridged)
 
 def test_sstl(graph):
-    checker = sstl_methods.sstl_checker(graph)
+    checker = sstl.sstl_checker(graph,'2018-09-08')
     checker.set_location(graph.a_node().coordinates)
-    checker.set_day('2018-09-08')
     f = open('checks.txt','r')
     for line in f:
         spec = line[:-1]
         if spec == 'END':
             break
         ans = checker.check_specification(spec)
-        print('result of {} is {}'.format(spec,ans))
+        print('result of {s} is {a}'.format(s=spec,a=ans))
 
-#load_chicago_day('chicago-complete.daily.2018-09-08/',abridged=False)
-#graph = get_chicago('chicago-complete.daily.2018-09-08/')
-sc_plot.plot_param('chicago','2018-09-08','h2s')
-sc_plot.plot_param('chicago','2018-09-08','no2')
-sc_plot.plot_param('chicago','2018-09-08','o3')
-sc_plot.plot_param('chicago','2018-09-08','humidity')
-sc_plot.plot_param('chicago','2018-09-08','visible_light_intensity')
-#test_sstl(graph)
+load_chicago_day('chicago-complete.daily.2018-09-08/',abridged=False)
+#sc_plot.plot_param('chicago','2018-09-08','h2s')
+#sc_plot.plot_param('chicago','2018-09-08','no2')
+#sc_plot.plot_param('chicago','2018-09-08','o3')
+#sc_plot.plot_param('chicago','2018-09-08','humidity')
+#sc_plot.plot_param('chicago','2018-09-08','visible_light_intensity')
+graph = get_chicago('chicago-complete.daily.2018-09-08')
+test_sstl(graph)

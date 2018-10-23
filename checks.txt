@@ -1,4 +1,4 @@
 <temperature>(15,inf)
 <temperature>(25,inf)
+W{school}(<temperature>(25,inf))
 END
-W{school}<min[0,1],temperature(25,inf)>
