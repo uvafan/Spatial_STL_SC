@@ -115,7 +115,6 @@ def process_param_df(param,param_df,param_dfs,node_id):
                 continue
 
 def create_chicago_graph(path,dist=5000):
-    perf = performance.performance_tester()
     node_df = pd.read_csv('{}/nodes.csv'.format(path))
     graph = sc_lib.graph('chicago')
     for index, row in node_df.iterrows():
@@ -123,7 +122,6 @@ def create_chicago_graph(path,dist=5000):
         new_node = sc_lib.node(row['node_id'],p)
         graph.add_node(new_node)
     add_pois(graph,amenities=['school','theatre','hospital'],dist=dist)
-    perf.checkpoint('created graph')
     return graph
 
 def load_parking_locs(path,graph):

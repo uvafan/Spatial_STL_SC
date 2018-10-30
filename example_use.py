@@ -40,8 +40,8 @@ use_sensor_as_param = {'concentration'}
 def load_chicago_day(path,abridged=False):
     sc_loading.load_chicago_data_day(path,trusted_sensors,use_sensor_as_param,abridged=abridged)
 
-def test_sstl(graph):
-    checker = sstl.sstl_checker(graph,'2018-09-08')
+def test_sstl(graph,cache_locs=True):
+    checker = sstl.sstl_checker(graph,'2018-09-08',cache_locs=cache_locs)
     checker.set_location(graph.a_node().coordinates)
     f = open('checks.txt','r')
     for line in f:

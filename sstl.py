@@ -13,12 +13,12 @@ from geopy.distance import vincenty
 from collections import defaultdict
 
 class sstl_checker:
-    def __init__(self, G, day, cache_locations=True):
+    def __init__(self, G, day, cache_locs=True):
         self.graph = G
         self.loc = tuple()
         self.day = day
         self.path = 'data/{c}/{d}'.format(c=self.graph.city,d=day)
-        self.cache_locations = cache_locations
+        self.cache_locs = cache_locs
         self.prep_for_comparisons()
 
     def set_location(self,coords):
@@ -33,8 +33,8 @@ class sstl_checker:
         for node in self.graph.nodes:
             if node.data_node:
                 self.data_nodes.add(node)
-        if self.cache_locations:
-            self.location_dict = defaultdict(set)
+        if self.cache_locs:
+            self.loc_dict = defaultdict(set)
 
     def parse_range_and_tags(self,range_and_tags):
         rng = (float('-inf'),float('inf'))
@@ -78,9 +78,9 @@ class sstl_checker:
         return vincenty(coordsA,coordsB).km
 
     def get_nodes(self,node,dist_range,tags=set(),only_to_check=False):
-        dict_key = (node,dist_range,tags,only_to_check)
-        if self.cache_locations and dict_key in self.location_dict:
-            return self.location_dict[dict_key]
+        dict_key = (node,dist_range,tuple(tags),only_to_check)
+        if self.cache_locs and dict_key in self.loc_dict:
+            return self.loc_dict[dict_key]
         ref_loc = node.coordinates if node else self.loc
         check_dist = dist_range != (float('-inf'),float('inf'))
         nodes = set()
@@ -92,8 +92,8 @@ class sstl_checker:
             if check_dist and not self.in_range(dist,dist_range):
                 continue
             nodes.add(n)
-        if self.cache_locations:
-            self.location_dict[dict_key] = nodes
+        if self.cache_locs:
+            self.loc_dict[dict_key] = nodes
         return nodes
 
     def check_specification(self,spec_str,node=None,time=None):
