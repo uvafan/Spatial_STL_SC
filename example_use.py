@@ -8,6 +8,7 @@ import sc_loading
 import sstl
 import sc_plot
 import random
+import performance
 
 tagToColor = {
     'school': (0,0,255),
@@ -56,5 +57,8 @@ def test_sstl(graph):
 #sc_plot.plot_param('chicago','2018-09-08','o3')
 #sc_plot.plot_param('chicago','2018-09-08','humidity')
 #sc_plot.plot_param('chicago','2018-09-08','visible_light_intensity')
+perf = performance.performance_tester()
 graph = get_chicago('chicago-complete.daily.2018-09-08')
+perf.checkpoint('retreiving graph')
 test_sstl(graph)
+perf.checkpoint('sstl checks')

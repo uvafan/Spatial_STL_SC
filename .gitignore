@@ -6,3 +6,4 @@ traffic_*
 data/chicago/*
 data/aarhus/*
 *.txt
+concurrent*
