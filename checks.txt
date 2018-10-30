@@ -1,7 +1,0 @@
-<temperature>(15,inf)
-<temperature>(25,inf)
-A[40,45](W{school}(<min[0,3],temperature>(20,inf)))
-A[0,2](W{school}(<min[0,3],temperature>(20,inf)))
-A[40,45](W{school}(<max[0,3],temperature>(20,inf)))
-A[40,45](W{school}(<avg[0,3],temperature>(20,inf)))
-END
