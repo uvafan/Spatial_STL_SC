@@ -40,8 +40,8 @@ use_sensor_as_param = {'concentration'}
 def load_chicago_day(path,abridged=False):
     sc_loading.load_chicago_data_day(path,trusted_sensors,use_sensor_as_param,abridged=abridged)
 
-def test_sstl(graph,cache_locs=True,debug=False):
-    checker = sstl.sstl_checker(graph,'2018-09-08',cache_locs=cache_locs,debug=debug)
+def test_sstl(graph,parallel=False,cache_locs=True,debug=False):
+    checker = sstl.sstl_checker(graph,'2018-09-08',parallel=parallel,cache_locs=cache_locs,debug=debug)
     checker.set_location(graph.a_node().coordinates)
     f = open('reqs.txt','r')
     for line in f:
@@ -55,7 +55,7 @@ def test_sstl(graph,cache_locs=True,debug=False):
 perf = performance.performance_tester()
 graph = get_chicago('chicago-complete.daily.2018-09-08')
 perf.checkpoint('retreiving graph')
-test_sstl(graph,debug=True)
+test_sstl(graph)
 #load_chicago_day('chicago-complete.daily.2018-09-08/',abridged=False)
 #sc_plot.plot_param('chicago','2018-09-08','h2s')
 #sc_plot.plot_param('chicago','2018-09-08','no2')
