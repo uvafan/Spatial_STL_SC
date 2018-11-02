@@ -43,6 +43,7 @@ def load_chicago_day(path,abridged=False):
 def test_sstl(graph,parallel=False,cache_locs=True,debug=False):
     checker = sstl.sstl_checker(graph,'2018-09-08',parallel=parallel,cache_locs=cache_locs,debug=debug)
     checker.set_location(graph.a_node().coordinates)
+    perf.checkpoint('creating checker')
     f = open('reqs.txt','r')
     for line in f:
         spec = line[:-1]

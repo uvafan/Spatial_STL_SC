@@ -10,7 +10,7 @@ import os
 import datetime
 import performance
 from copy import deepcopy
-from geopy.distance import vincenty
+from geopy import distance
 from collections import defaultdict
 
 class sstl_checker:
@@ -43,8 +43,7 @@ class sstl_checker:
         self.cache_lookahead = False
         self.cache_parsing = False
         self.cache_timerange = False
-        self.cache_agg = True
-        self.loc_dict = dict()
+        self.cache_agg = False
         self.lookahead_dict = dict()
         self.parsing_dict = dict()
         self.timerange_dict = dict()
@@ -99,12 +98,13 @@ class sstl_checker:
         return val >= val_range[0] and val <= val_range[1]
 
     def dist_btwn(self,coordsA,coordsB):
-        return vincenty(coordsA,coordsB).km
+        #distance.distance is more accurate but slower
+        return distance.vincenty(coordsA,coordsB).km
 
     def get_nodes(self,node,dist_range,last_spatial,param,tags=set()):
-        dict_key = (node,dist_range,tuple(tags),last_spatial,param)
-        if self.cache_locs and dict_key in self.loc_dict:
-            return self.loc_dict[dict_key]
+        dict_key = (dist_range,tuple(tags),last_spatial,param)
+        if node and self.cache_locs and dict_key in node.loc_dict:
+            return node.loc_dict[dict_key]
         ref_loc = node.coordinates if node else self.loc
         check_dist = dist_range != (float('-inf'),float('inf'))
         nodes = set()
@@ -112,12 +112,13 @@ class sstl_checker:
         for n in considered_nodes:
             if len(tags) and not len(tags.intersection(n.tags)):
                 continue
-            dist = self.dist_btwn(n.coordinates,ref_loc)
-            if check_dist and not self.in_range(dist,dist_range):
-                continue
+            if check_dist:
+                dist = self.dist_btwn(n.coordinates,ref_loc)
+                if not self.in_range(dist,dist_range):
+                    continue
             nodes.add(n)
-        if self.cache_locs:
-            self.loc_dict[dict_key] = nodes
+        if node and self.cache_locs:
+            node.loc_dict[dict_key] = nodes
         return nodes
 
     def look_ahead(self, spec_str):
@@ -151,8 +152,15 @@ class sstl_checker:
         if len(and_specs) > 1:
             return self.check_specification(and_specs[0],time=time,node=node,parse_ops=po) and self.check_specification(and_specs[1],time=time,node=node,parse_ops=po)
         return self.check_specification(spec_str,parse_ops=False,do_check=True,time=time,node=node)
-    
-    def check_specification(self,spec_str,node=None,time=None,parse_ops=True,do_check=False):
+   
+    def get_nodes_lookahead(self,spec_str):
+        if spec_str[0] == '<':
+            return self.get_nodes_lookahead('W({})'.format(spec_str))
+        dist_range,tags,_ = self.parse_spec_str(spec_str)
+        last_spatial, param = self.look_ahead(spec_str)
+        return self.get_nodes(None,dist_range,last_spatial,param,tags=tags)
+
+    def check_specification(self,spec_str,node=None,nodes=None,time=None,parse_ops=True,do_check=False):
         if parse_ops:
             return self.parse_logical_operands(spec_str)
         if spec_str[0] == '!':
@@ -161,8 +169,11 @@ class sstl_checker:
         if spec_str[0] == 'A':
             time_range,tags,next_spec_str = self.parse_spec_str(spec_str)
             datetime_rng = self.get_datetime_range(time,time_range)
+            if not node and next_spec_str[0] in ['E','W','<']:
+                self.log('skipping')
+                nodes = self.get_nodes_lookahead(next_spec_str)
             for t in datetime_rng:
-                result = self.check_specification(next_spec_str,node=node,time=t,parse_ops=False)
+                result = self.check_specification(next_spec_str,node=node,nodes=nodes,time=t,parse_ops=False)
                 if result != -1 and not result:
                     return False
             return True
@@ -170,8 +181,10 @@ class sstl_checker:
         elif spec_str[0] == 'E':
             time_range,tags,next_spec_str = self.parse_spec_str(spec_str)
             datetime_rng = self.get_datetime_range(time,time_range)
+            if not node and next_spec_str[0] in ['E','W','<']:
+                nodes = self.get_nodes_lookahead(next_spec_str)
             for t in datetime_rng:
-                result = self.check_specification(next_spec_str,node=node,time=t,parse_ops=False)
+                result = self.check_specification(next_spec_str,node=node,nodes=nodes,time=t,parse_ops=False)
                 if result != -1 and result:
                     return True
             return False
@@ -179,7 +192,9 @@ class sstl_checker:
         elif spec_str[0] == 'W':
             dist_range,tags,next_spec_str = self.parse_spec_str(spec_str)
             last_spatial, param = self.look_ahead(spec_str)
-            nodes = self.get_nodes(node,dist_range,last_spatial,param,tags=tags)
+            if not nodes:
+                nodes = self.get_nodes(node,dist_range,last_spatial,param,tags=tags)
+                self.log('looping over {} nodes'.format(len(nodes)))
             for n in nodes:
                 result = self.check_specification(next_spec_str,node=n,time=time,parse_ops=False)
                 if result != -1 and not result:
@@ -189,7 +204,8 @@ class sstl_checker:
         elif spec_str[0] == 'S':
             dist_range,tags,next_spec_str = self.parse_spec_str(spec_str)
             last_spatial, param = self.look_ahead(spec_str)
-            nodes = self.get_nodes(node,dist_range,last_spatial,param,tags=tags)
+            if not nodes:
+                nodes = self.get_nodes(node,dist_range,last_spatial,param,tags=tags)
             for n in nodes:
                 result = self.check_specification(next_spec_str,node=n,time=time,parse_ops=False)
                 if result != -1 and result:
@@ -198,9 +214,9 @@ class sstl_checker:
         #Aggregation   
         elif spec_str[0] == '<':
             if not time:
-                return self.check_specification('A({})'.format(spec_str),node,time,parse_ops=False)
+                return self.check_specification('A({})'.format(spec_str),node,nodes,time,parse_ops=False)
             if not node:
-                return self.check_specification('W({})'.format(spec_str),node,time,parse_ops=False)
+                return self.check_specification('W({})'.format(spec_str),node,nodes,time,parse_ops=False)
             if not do_check:
                 return self.parse_logical_operands(spec_str,agg=True,node=node,time=time)
             aggregation_op,dist_range,param,val_range = self.parse_aggregation_str(spec_str[1:])
@@ -248,6 +264,7 @@ class sstl_checker:
             vals.append(val)
         if not len(vals):
             return -1
+        #self.log('aggregating data from {} nodes'.format(len(vals)))
         val = 0
         if aggregation_op == 'min':
             val = min(vals)

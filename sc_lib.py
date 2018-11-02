@@ -25,6 +25,7 @@ class node:
         self.successors = set()
         self.intersections = tuple()
         self.data_node = True
+        self.loc_dict = dict()
 
     #returns distance between self and other in km
     def dist_to(self,other):
