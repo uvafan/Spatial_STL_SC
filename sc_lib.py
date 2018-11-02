@@ -71,6 +71,7 @@ class edge:
     
 class graph:
     def __init__(self,city):
+        self.nodes_by_ID = dict()
         self.nodes = set()
         self.data_nodes = set()
         self.edges = set()
@@ -86,6 +87,7 @@ class graph:
 
     def add_node(self, node):
         if node not in self.nodes:
+            self.nodes_by_ID[node.ID] = node
             self.nodes.add(node)
             if node.data_node:
                 self.data_nodes.add(node)

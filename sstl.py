@@ -9,20 +9,24 @@ import numpy as np
 import os
 import datetime
 import performance
+import concurrent.futures
+from multiprocessing import Pool,cpu_count
+from itertools import repeat,product
 from copy import deepcopy
 from geopy import distance
 from collections import defaultdict
 
 class sstl_checker:
-    def __init__(self, G, day, parallel=False, cache_locs=True, debug=False):
+    def __init__(self, G, day, parallel=True, cache_locs=True, debug=False):
         self.graph = G
         self.loc = tuple()
         self.day = day
         self.path = 'data/{c}/{d}'.format(c=self.graph.city,d=day)
         self.cache_locs = cache_locs
         self.prep_for_comparisons()
-        self.debug=debug
+        self.debug = debug
         self.parallel = parallel
+        self.workers = cpu_count()
 
     def log(self,s):
         if self.debug:
@@ -31,14 +35,19 @@ class sstl_checker:
     def set_location(self,coords):
         self.loc = coords
 
+    def get_df(self,param):
+        if param not in self.param_dfs:
+            self.param_dfs[param] = pd.read_csv('{path}/{param}'.format(path=self.path,param=param),index_col=0)
+        return self.param_dfs[param] 
+
     def prep_for_comparisons(self):
         params = os.listdir(self.path)
         self.param_dfs = dict()
         self.nodes_with_data = defaultdict(set)
         for param in params:
-            self.param_dfs[param] = pd.read_csv('{path}/{param}'.format(path=self.path,param=param),index_col=0)
+            df = self.get_df(param)
             for node in self.graph.nodes:
-                if node.ID in self.param_dfs[param].columns:
+                if node.ID in df.columns:
                     self.nodes_with_data[param].add(node)
         self.cache_lookahead = False
         self.cache_parsing = False
@@ -101,8 +110,9 @@ class sstl_checker:
         #distance.distance is more accurate but slower
         return distance.vincenty(coordsA,coordsB).km
 
-    def get_nodes(self,node,dist_range,last_spatial,param,tags=set()):
+    def get_nodes(self,node_ID,dist_range,last_spatial,param,tags=set()):
         dict_key = (dist_range,tuple(tags),last_spatial,param)
+        node = self.graph.nodes_by_ID[node_ID] if node_ID else None
         if node and self.cache_locs and dict_key in node.loc_dict:
             return node.loc_dict[dict_key]
         ref_loc = node.coordinates if node else self.loc
@@ -116,7 +126,7 @@ class sstl_checker:
                 dist = self.dist_btwn(n.coordinates,ref_loc)
                 if not self.in_range(dist,dist_range):
                     continue
-            nodes.add(n)
+            nodes.add(n.ID)
         if node and self.cache_locs:
             node.loc_dict[dict_key] = nodes
         return nodes
@@ -136,7 +146,7 @@ class sstl_checker:
             self.lookahead_dict[spec_str] = True, param
         return True, param
 
-    def parse_logical_operands(self,spec_str,agg=False,time=None,node=None):
+    def parse_logical_operands(self,spec_str,agg=False,time=None,node_ID=None,parallelized=False):
         if_str = '->' if agg else '->->'
         or_str = '|' if agg else '||'
         and_str = '&' if agg else '&&'
@@ -144,14 +154,14 @@ class sstl_checker:
         po = not agg
         assert(len(if_specs)<3)
         if len(if_specs) > 1:
-            return not self.check_specification(if_specs[0],time=time,node=node,parse_ops=po) or self.check_specification(if_specs[1],time=time,node=node,parse_ops=po)
+            return not self.check_spec(if_specs[0],time=time,node_ID=node_ID,parse_ops=po,parallelized=parallelized) or self.check_spec(if_specs[1],time=time,node_ID=node_ID,parse_ops=po,parallelized=parallelized)
         or_specs = spec_str.split(or_str)
         if len(or_specs) > 1:
-            return self.check_specification(or_specs[0],time=time,node=node,parse_ops=po) or self.check_specification(or_specs[1],time=time,node=node,parse_ops=po)
+            return self.check_spec(or_specs[0],time=time,node_ID=node_ID,parse_ops=po,parallelized=parallelized) or self.check_spec(or_specs[1],time=time,node_ID=node_ID,parse_ops=po,parallelized=parallelized)
         and_specs = spec_str.split(and_str)
         if len(and_specs) > 1:
-            return self.check_specification(and_specs[0],time=time,node=node,parse_ops=po) and self.check_specification(and_specs[1],time=time,node=node,parse_ops=po)
-        return self.check_specification(spec_str,parse_ops=False,do_check=True,time=time,node=node)
+            return self.check_spec(and_specs[0],time=time,node_ID=node_ID,parse_ops=po,parallelized=parallelized) and self.check_spec(and_specs[1],time=time,node_ID=node_ID,parse_ops=po,parallelized=parallelized)
+        return self.check_spec(spec_str,parse_ops=False,do_check=True,time=time,node_ID=node_ID,parallelized=parallelized)
    
     def get_nodes_lookahead(self,spec_str):
         if spec_str[0] == '<':
@@ -160,31 +170,35 @@ class sstl_checker:
         last_spatial, param = self.look_ahead(spec_str)
         return self.get_nodes(None,dist_range,last_spatial,param,tags=tags)
 
-    def check_specification(self,spec_str,node=None,nodes=None,time=None,parse_ops=True,do_check=False):
-        if parse_ops:
-            return self.parse_logical_operands(spec_str)
+    def check_spec(self,spec_str,node_ID=None,time=None,parallelized=False,parse_ops=True,nodes=None,do_check=False):
+        self.log('node_ID: {}'.format(node_ID))
+        self.log('spec_str: {}'.format(spec_str))
+        if parse_ops and spec_str[0]!='<':
+            return self.parse_logical_operands(spec_str,parallelized=parallelized)
         if spec_str[0] == '!':
-            return not self.check_specification(spec_str[1:],node=node,time=time,parse_ops=False)
+            return not self.check_spec(spec_str[1:],node_ID=node_ID,time=time,parse_ops=False,parallelized=parallelized)
         #Always
         if spec_str[0] == 'A':
+            perf = performance.performance_tester()
             time_range,tags,next_spec_str = self.parse_spec_str(spec_str)
             datetime_rng = self.get_datetime_range(time,time_range)
-            if not node and next_spec_str[0] in ['E','W','<']:
-                self.log('skipping')
+            if not node_ID and next_spec_str[0] in ['E','W','<']:
                 nodes = self.get_nodes_lookahead(next_spec_str)
             for t in datetime_rng:
-                result = self.check_specification(next_spec_str,node=node,nodes=nodes,time=t,parse_ops=False)
+                result = self.check_spec(next_spec_str,node_ID=node_ID,nodes=nodes,time=t,parse_ops=False,parallelized=parallelized)
                 if result != -1 and not result:
                     return False
+            if self.debug:
+                perf.checkpoint('finishing one node')
             return True
         #Eventually
         elif spec_str[0] == 'E':
             time_range,tags,next_spec_str = self.parse_spec_str(spec_str)
             datetime_rng = self.get_datetime_range(time,time_range)
-            if not node and next_spec_str[0] in ['E','W','<']:
+            if not node_ID and next_spec_str[0] in ['E','W','<']:
                 nodes = self.get_nodes_lookahead(next_spec_str)
             for t in datetime_rng:
-                result = self.check_specification(next_spec_str,node=node,nodes=nodes,time=t,parse_ops=False)
+                result = self.check_spec(next_spec_str,node_ID=node_ID,nodes=nodes,time=t,parse_ops=False,parallelized=parallelized)
                 if result != -1 and result:
                     return True
             return False
@@ -193,10 +207,19 @@ class sstl_checker:
             dist_range,tags,next_spec_str = self.parse_spec_str(spec_str)
             last_spatial, param = self.look_ahead(spec_str)
             if not nodes:
-                nodes = self.get_nodes(node,dist_range,last_spatial,param,tags=tags)
-                self.log('looping over {} nodes'.format(len(nodes)))
+                nodes = self.get_nodes(node_ID,dist_range,last_spatial,param,tags=tags)
+            if self.parallel and not parallelized:
+                pool = Pool(processes=self.workers)
+                for n,result in zip(nodes, pool.starmap(self.check_spec,product([next_spec_str],nodes,[time],[True],[False]))):
+                    if result != -1 and not result:
+                        pool.close()
+                        pool.join()
+                        return False
+                pool.close()
+                pool.join()
+                return True
             for n in nodes:
-                result = self.check_specification(next_spec_str,node=n,time=time,parse_ops=False)
+                result = self.check_spec(next_spec_str,node_ID=n,time=time,parse_ops=False,parallelized=parallelized)
                 if result != -1 and not result:
                     return False
             return True
@@ -205,22 +228,32 @@ class sstl_checker:
             dist_range,tags,next_spec_str = self.parse_spec_str(spec_str)
             last_spatial, param = self.look_ahead(spec_str)
             if not nodes:
-                nodes = self.get_nodes(node,dist_range,last_spatial,param,tags=tags)
+                nodes = self.get_nodes(node_ID,dist_range,last_spatial,param,tags=tags)
+            if self.parallel and not parallelized:
+                pool = Pool(processes=self.workers)
+                for n,result in zip(nodes, pool.starmap(self.check_spec,product([next_spec_str],nodes,[time],[True],[False]))):
+                    if result != -1 and result:
+                        pool.close()
+                        pool.join()
+                        return True
+                pool.close()
+                pool.join()
+                return False
             for n in nodes:
-                result = self.check_specification(next_spec_str,node=n,time=time,parse_ops=False)
+                result = self.check_spec(next_spec_str,node_ID=n,time=time,parse_ops=False,parallelized=parallelized)
                 if result != -1 and result:
                     return True
             return False
         #Aggregation   
         elif spec_str[0] == '<':
+            if not node_ID:
+                return self.check_spec('W({})'.format(spec_str),node_ID=node_ID,nodes=nodes,time=time,parse_ops=False,parallelized=parallelized)
             if not time:
-                return self.check_specification('A({})'.format(spec_str),node,nodes,time,parse_ops=False)
-            if not node:
-                return self.check_specification('W({})'.format(spec_str),node,nodes,time,parse_ops=False)
+                return self.check_spec('A({})'.format(spec_str),node_ID=node_ID,nodes=nodes,time=time,parse_ops=False,parallelized=parallelized)
             if not do_check:
-                return self.parse_logical_operands(spec_str,agg=True,node=node,time=time)
+                return self.parse_logical_operands(spec_str,agg=True,node_ID=node_ID,time=time,parallelized=parallelized)
             aggregation_op,dist_range,param,val_range = self.parse_aggregation_str(spec_str[1:])
-            return self.check_value(node,time,aggregation_op,dist_range,param,val_range)
+            return self.check_value(node_ID,time,aggregation_op,dist_range,param,val_range)
         else:
             print('Invalid spec: {}'.format(spec_str))
             return False
@@ -251,14 +284,14 @@ class sstl_checker:
         self.agg_dict[aggregationStr] = ret
         return ret
 
-    def check_aggregation(self,aggregation_op,param,dist_range,node,time,val_range):
-        check_nodes = self.get_nodes(node,dist_range,True,param)
+    def check_aggregation(self,aggregation_op,param,dist_range,node_ID,time,val_range):
+        check_nodes = self.get_nodes(node_ID,dist_range,True,param)
         if not len(check_nodes):
             return -1
-        df = self.param_dfs[param]
+        df = self.get_df(param)
         vals = []
         for check_node in check_nodes:
-            val = df.at[str(time),check_node.ID]
+            val = df.at[str(time),check_node]
             if np.isnan(val):
                 continue
             vals.append(val)
@@ -277,13 +310,13 @@ class sstl_checker:
             return False
         return self.in_range(val,val_range) 
     
-    def check_value(self,node,time,aggregation_op,dist_range,param,val_range): 
+    def check_value(self,node_ID,time,aggregation_op,dist_range,param,val_range): 
         if aggregation_op:
-            return self.check_aggregation(aggregation_op,param,dist_range,node,time,val_range)
-        perf = performance.performance_tester()
-        df = self.param_dfs[param]
-        val = df.at[str(time),node.ID]
+            return self.check_aggregation(aggregation_op,param,dist_range,node_ID,time,val_range)
+        df = self.get_df(param)
+        val = df.at[str(time),node_ID]
         if np.isnan(val):
             return -1
         return self.in_range(val,val_range)
+
 
