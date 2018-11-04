@@ -35,11 +35,21 @@ def make_dir(path):
     except FileExistsError:
         pass
 
-def load_chicago_data_day(path, trusted_sensors, use_sensor_as_param, abridged=False, sample=float('inf')):
+def load_data(city, day):
+    if city == 'chicago':
+        load_chicago_day(day)
+
+trusted_sensors = {
+    'temperature': {'at0','at1','at2','at3','sht25'}
+}
+
+use_sensor_as_param = {'concentration'}
+
+def load_chicago_day(day, abridged=False, sample=float('inf')):
     perf = performance.performance_tester()
     data_filename = 'data.csv' if not abridged else 'abridged_data.csv'
-    node_df = pd.read_csv('{}nodes.csv'.format(path))
-    data_df = pd.read_csv(path+data_filename)
+    node_df = pd.read_csv('raw_data/chicago/nodes.csv')
+    data_df = pd.read_csv('raw_data/chicago/{}'.format(day))
     data_df['timestamp'] = pd.to_datetime(data_df['timestamp'])
     data_df = data_df.set_index('timestamp')
     perf.checkpoint('loaded csvs')
@@ -114,8 +124,12 @@ def process_param_df(param,param_df,param_dfs,node_id):
             except ValueError:
                 continue
 
-def create_chicago_graph(path,dist=5000):
-    node_df = pd.read_csv('{}/nodes.csv'.format(path))
+def get_graph(city,day):
+    if city == 'chicago':
+        return create_chicago_graph()
+
+def create_chicago_graph(dist=5000):
+    node_df = pd.read_csv('raw_data/chicago/nodes.csv')
     graph = sc_lib.graph('chicago')
     for index, row in node_df.iterrows():
         p = (row['lat'],row['lon'])

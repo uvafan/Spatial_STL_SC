@@ -5,5 +5,6 @@
 traffic_*
 data/chicago/*
 data/aarhus/*
+raw_data/*
 *.txt
 concurrent*
