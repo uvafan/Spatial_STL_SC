@@ -39,39 +39,57 @@ def load_data(city, day):
     if city == 'chicago':
         load_chicago_day(day)
 
+#hardcoded for now
+use_params = {'concentration','intensity'}
+
+ranges = {
+    'co': (0,1000),
+    'no2': (0,20),
+    'o3': (0,20),
+    'lightsense': (0,124)
+}
+
 trusted_sensors = {
-    'temperature': {'at0','at1','at2','at3','sht25'}
+    'temperature': {'at0','at1','at2','at3','sht25'},
+    'intensity': {'tsl250rd'}
 }
 
 use_sensor_as_param = {'concentration'}
+use_subsystem_as_param = {'intensity'}
 
-def load_chicago_day(day, abridged=False, sample=float('inf')):
+def load_chicago_day(day, sample=float('inf'), folder='/media/sf_D_DRIVE'):
     perf = performance.performance_tester()
-    data_filename = 'data.csv' if not abridged else 'abridged_data.csv'
-    node_df = pd.read_csv('raw_data/chicago/nodes.csv')
-    data_df = pd.read_csv('raw_data/chicago/{}'.format(day))
+    day_str = day.replace('-','_') 
+    node_df = pd.read_csv('{}/chicago_raw/nodes.csv'.format(folder))
+    data_df = pd.read_csv('{}/chicago_raw/{}.csv'.format(folder,day_str),names=['timestamp','node_id','subsystem','sensor','parameter','value_raw','value_hrf'])
+    perf.checkpoint('read csv')
     data_df['timestamp'] = pd.to_datetime(data_df['timestamp'])
     data_df = data_df.set_index('timestamp')
-    perf.checkpoint('loaded csvs')
     ctr = 0
-    make_dir('data')
-    make_dir('data/chicago')
-    day_str = str(data_df.index[0]).split()[0]
-    day_path = 'data/chicago/{}'.format(day_str)
+    day_path = '{}/chicago_data/{}'.format(folder,day)
     make_dir(day_path)
-    date_rng = pd.date_range(start=day_str,end=pd.to_datetime(day_str)+datetime.timedelta(days=1),freq='min')
+    date_rng = pd.date_range(start=day,end=pd.to_datetime(day)+datetime.timedelta(days=1),freq='min')
     param_dfs = dict()
-    for param in data_df['parameter'].unique():
+    data_df = data_df.loc[data_df['parameter'].isin(use_params)]
+    for param in use_params:
         if param in use_sensor_as_param:
-            sensors = data_df.loc[data_df['parameter']==param]['sensor'].unique()
+            sensors = data_df[data_df['parameter']==param]['sensor'].unique()
             for sensor in sensors:
+                if sensor not in ranges:
+                    continue
                 param_dfs[sensor] = pd.DataFrame(index=date_rng)
+        elif param in use_subsystem_as_param:
+            systems = data_df[data_df['parameter']==param]['subsystem'].unique()
+            for system in systems:
+                if system not in ranges:
+                    continue
+                param_dfs[system] = pd.DataFrame(index=date_rng)
         else:
             param_dfs[param] = pd.DataFrame(index=date_rng)
+    perf.checkpoint('starting node by node')
     for index, row in node_df.iterrows():
-        perf.checkpoint('processed node')
         node_id = row['node_id']
-        new_node_df = data_df.loc[data_df['node_id']==node_id]
+        new_node_df = data_df[data_df['node_id']==node_id]
         if new_node_df.empty:
             continue
         for param in new_node_df['parameter'].unique():
@@ -83,25 +101,50 @@ def load_chicago_day(day, abridged=False, sample=float('inf')):
             if param in use_sensor_as_param:
                 sensors = param_df['sensor'].unique()
                 for sensor in sensors:
+                    if sensor not in ranges:
+                        continue
                     sensor_df = param_df.loc[param_df['sensor']==sensor]
                     process_param_df(sensor,sensor_df,param_dfs,node_id)
+            elif param in use_subsystem_as_param:
+                systems = param_df['subsystem'].unique()
+                for system in systems:
+                    if system not in ranges:
+                        continue
+                    system_df = param_df[param_df['subsystem']==system]
+                    process_param_df(system,system_df,param_dfs,node_id)
             else:
                 process_param_df(param,param_df,param_dfs,node_id)
         ctr+=1
+        #perf.checkpoint('processed node')
         if ctr==sample:
             break
+    print('SUMMARY FOR {}; loaded {} nodes'.format(day,ctr))
     for param in param_dfs:
-        param_dfs[param].to_csv('{dp}/{p}'.format(dp=day_path,p=param))
-    perf.checkpoint('wrote param dfs to csvs')
+        print_summary(param,day,param_dfs[param])
+        param_dfs[param].to_csv('{dp}/{p}.csv'.format(dp=day_path,p=param))
+
+def print_summary(param, day, df):
+    print('-----{} SUMMARY-----'.format(param))
+    periods = [[7,10],[11,14],[16,19],[20,23]]
+    for period in periods:
+        print('PERIOD FROM {} to {}'.format(period[0],period[1]))
+        s = pd.to_datetime(day)+datetime.timedelta(hours=period[0])
+        e = pd.to_datetime(day)+datetime.timedelta(hours=period[1])
+        pdf = df[s:e]
+        pdf = pdf.assign(avg=pdf.mean(axis=1),ma=pdf.max(axis=1))
+        print('Average: {}'.format(np.nanmean(pdf['avg'])))
+        print('Max: {}'.format(np.nanmax(pdf['ma'])))
+        print('SD: {}'.format(np.std(pdf['avg'])))
+        sys.stdout.flush()
+
 
 def process_param_df(param,param_df,param_dfs,node_id):
     hrf = True
     try:
         f = float(param_df['value_hrf'][0])
-        if np.isnan(f):
-            raise ValueError
         param_dfs[param][node_id] = np.nan
     except ValueError:
+        '''
         try:
             f = float(param_df['value_raw'][0])
             if np.isnan(f):
@@ -110,7 +153,8 @@ def process_param_df(param,param_df,param_dfs,node_id):
             hrf=False
         except ValueError:
             #don't care about non-numeric for now
-            return        
+        '''
+        return        
     keep = 'value_hrf' if hrf else 'value_raw'
     for col in param_df.columns:
         if col != keep:
@@ -120,7 +164,9 @@ def process_param_df(param,param_df,param_dfs,node_id):
         minute = tm - datetime.timedelta(seconds=tm.second,microseconds=tm.microsecond)
         if np.isnan(param_dfs[param][node_id][minute]):
             try:
-                param_dfs[param].at[minute,node_id] = prow['value']
+                val = float(prow['value'])
+                if val >= ranges[param][0] and val <= ranges[param][1]:
+                    param_dfs[param].at[minute,node_id] = val
             except ValueError:
                 continue
 

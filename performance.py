@@ -1,4 +1,5 @@
 import time
+import sys
 
 class performance_tester:
 
@@ -9,3 +10,4 @@ class performance_tester:
         length = time.time() - self.checkin
         self.checkin = time.time()
         print('{} took {} seconds.'.format(description,length))
+        sys.stdout.flush()
