@@ -17,16 +17,17 @@ from geopy import distance
 from collections import defaultdict
 
 class sstl_checker:
-    def __init__(self, G, day, parallel=True, cache_locs=True, debug=False):
+    def __init__(self, G, day, parallel=True, cache_locs=True, debug=False, params=None):
         self.graph = G
         self.loc = tuple()
         self.day = day
-        self.path = 'data/{c}/{d}'.format(c=self.graph.city,d=day)
+        self.path = '/media/sf_D_DRIVE/{c}_data/{d}'.format(c=self.graph.city,d=day)
         self.cache_locs = cache_locs
-        self.prep_for_comparisons()
         self.debug = debug
         self.parallel = parallel
+        self.params = params
         self.workers = cpu_count()
+        self.prep_for_comparisons()
 
     def log(self,s):
         if self.debug:
@@ -37,14 +38,15 @@ class sstl_checker:
 
     def get_df(self,param):
         if param not in self.param_dfs:
-            self.param_dfs[param] = pd.read_csv('{path}/{param}'.format(path=self.path,param=param),index_col=0)
+            self.param_dfs[param] = pd.read_csv('{path}/{param}.csv'.format(path=self.path,param=param),index_col=0)
         return self.param_dfs[param] 
 
     def prep_for_comparisons(self):
-        params = os.listdir(self.path)
+        if not self.params:
+            self.params = [s[:-4] for s in os.listdir(self.path)]
         self.param_dfs = dict()
         self.nodes_with_data = defaultdict(set)
-        for param in params:
+        for param in self.params:
             df = self.get_df(param)
             for node in self.graph.nodes:
                 if node.ID in df.columns:
@@ -127,6 +129,8 @@ class sstl_checker:
                 if not self.in_range(dist,dist_range):
                     continue
             nodes.add(n.ID)
+        if check_dist:
+            self.log('found {} nodes in range'.format(len(nodes)))
         if node and self.cache_locs:
             node.loc_dict[dict_key] = nodes
         return nodes
@@ -171,8 +175,8 @@ class sstl_checker:
         return self.get_nodes(None,dist_range,last_spatial,param,tags=tags)
 
     def check_spec(self,spec_str,node_ID=None,time=None,parallelized=False,parse_ops=True,nodes=None,do_check=False):
-        self.log('node_ID: {}'.format(node_ID))
-        self.log('spec_str: {}'.format(spec_str))
+        #self.log('node_ID: {}'.format(node_ID))
+        #self.log('spec_str: {}'.format(spec_str))
         if parse_ops and spec_str[0]!='<':
             return self.parse_logical_operands(spec_str,parallelized=parallelized)
         if spec_str[0] == '!':

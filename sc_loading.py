@@ -40,18 +40,20 @@ def load_data(city, day):
         load_chicago_day(day)
 
 #hardcoded for now
-use_params = {'concentration','intensity'}
+use_params = {'humidity'}
 
 ranges = {
     'co': (0,1000),
     'no2': (0,20),
     'o3': (0,20),
-    'lightsense': (0,124)
+    'lightsense': (0,124),
+    'humidity': (0,100)
 }
 
 trusted_sensors = {
     'temperature': {'at0','at1','at2','at3','sht25'},
-    'intensity': {'tsl250rd'}
+    'intensity': {'tsl250rd'},
+    'humidity': {'hih4030'}
 }
 
 use_sensor_as_param = {'concentration'}
@@ -170,18 +172,19 @@ def process_param_df(param,param_df,param_dfs,node_id):
             except ValueError:
                 continue
 
-def get_graph(city,day):
+def get_graph(city):
     if city == 'chicago':
         return create_chicago_graph()
 
-def create_chicago_graph(dist=5000):
-    node_df = pd.read_csv('raw_data/chicago/nodes.csv')
+def create_chicago_graph():
+    node_df = pd.read_csv('/media/sf_D_DRIVE/chicago_raw/nodes.csv')
     graph = sc_lib.graph('chicago')
     for index, row in node_df.iterrows():
         p = (row['lat'],row['lon'])
         new_node = sc_lib.node(row['node_id'],p)
         graph.add_node(new_node)
-    add_pois(graph,amenities=['school','theatre','hospital'],dist=dist)
+    add_pois(graph,amenities=['school','theatre','hospital'])
+    graph.add_chi_parks()
     return graph
 
 def load_parking_locs(path,graph):
