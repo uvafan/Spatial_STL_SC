@@ -13,6 +13,7 @@ import sys
 import os
 import datetime
 from collections import defaultdict
+from copy import deepcopy
 
 def load_nyc_data(graph, fin):
     f = open(fin, 'r')
@@ -38,6 +39,8 @@ def make_dir(path):
 def load_data(city, day):
     if city == 'chicago':
         load_chicago_day(day)
+    elif city == 'aarhus':
+        load_aarhus()
 
 #hardcoded for now
 use_params = {'intensity','concentration','humidity'}
@@ -175,6 +178,8 @@ def process_param_df(param,param_df,param_dfs,node_id):
 def get_graph(city):
     if city == 'chicago':
         return create_chicago_graph()
+    elif city == 'aarhus':
+        return create_aarhus_graph('/media/sf_D_DRIVE/aarhus_raw') 
 
 def create_chicago_graph():
     node_df = pd.read_csv('/media/sf_D_DRIVE/chicago_raw/nodes.csv')
@@ -189,15 +194,7 @@ def create_chicago_graph():
     return graph
 
 def load_parking_locs(path,graph):
-    fin = '{}parking/aarhus_parking_address.csv'.format(path)
-    df = pd.read_csv(fin)
-    start = len(graph.nodes)
-    for index, row in df.iterrows():
-        new_node = sc_lib.node(row['garagecode'],(row['latitude'],row['longitude']))
-        new_node.add_tag('parking')
-
-def load_parking_locs(path,graph):
-    fin = '{}parking/aarhus_parking_address.csv'.format(path)
+    fin = '{}/parking/aarhus_parking_address.csv'.format(path)
     df = pd.read_csv(fin)
     start = len(graph.nodes)
     for index, row in df.iterrows():
@@ -210,7 +207,7 @@ def midpoint(p1,p2):
     return ((p1[0]+p2[0])/2,(p1[1]+p2[1])/2)
 
 def load_traffic_locs(path,graph):
-    fin = '{}traffic/trafficMetaData.csv'.format(path)
+    fin = '{}/traffic/trafficMetaData.csv'.format(path)
     df = pd.read_csv(fin)
     start = len(graph.nodes)
     for index, row in df.iterrows():
@@ -222,7 +219,7 @@ def load_traffic_locs(path,graph):
     #print('traffic: {} nodes'.format(len(graph.nodes)-start))
 
 def load_library_locs(path,graph):
-    fin = '{}library_events/aarhus_libraryEvents.csv'.format(path)
+    fin = '{}/library_events/aarhus_libraryEvents.csv'.format(path)
     df = pd.read_csv(fin)
     start = len(graph.nodes)
     for index, row in df.iterrows():
@@ -231,14 +228,38 @@ def load_library_locs(path,graph):
         graph.add_node(new_node)        
     #print('library: {} nodes'.format(len(graph.nodes)-start))
 
-def add_pois(graph,amenities=None,dist=5000):
+def add_pois(graph,amenities=None,dist=15000):
     p = graph.centroid()
     graph.add_OSMnx_pois(amenities=['school','theatre','hospital'],p=p,dist=dist)
 
-def load_aarhus_data(path):
-    graph = sc_lib.graph()
+def load_parking_data(path,day_dfs):
+    data_df = pd.read_csv('{}/aarhus_raw/aarhus_parking.csv'.format(path))
+
+def load_traffic_data(path,day_dfs):
+    pass
+
+def load_weather_data(path,day_dfs):
+    pass
+
+def load_event_data(path,day_dfs):
+    pass
+
+def load_aarhus(path='/media/sf_D_DRIVE'):
+    days = pd.date_range(start='2014-08-01',end='2014-09-30',freq='D')
+    day_dfs = dict()
+    for day in days:
+        make_dir('{}/aarhus_data/{}'.format(path,str(day)))
+        mins = pd.date_range(start=day,end=day+datetime.timedelta(days=1)-datetime.timedelta(minutes=1),freq='min')
+        day_dfs[str(day)] = pd.DataFrame(index=mins)
+    load_parking_data(path,deepcopy(day_dfs))
+    load_traffic_data(path,deepcopy(day_dfs))
+    load_weather_data(path,deepcopy(day_dfs))
+    load_event_data(path,deepcopy(day_dfs))
+    
+def create_aarhus_graph(path):
+    graph = sc_lib.graph('aarhus')
     load_parking_locs(path,graph)
     load_traffic_locs(path,graph)
     load_library_locs(path,graph)
-    add_pois(graph,amenities=['school','theatre','hospital'])
+    add_pois(graph,amenities=['school'],dist=10000)
     return graph

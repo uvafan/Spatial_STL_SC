@@ -22,7 +22,8 @@ workdays = ['2018-04-02','2018-04-10','2018-04-18','2018-04-26','2018-04-27','20
 
 weekends = ['2018-04-07','2018-04-08','2018-04-14','2018-04-15','2018-04-21','2018-05-05','2018-05-06','2018-05-12','2018-05-13','2018-05-20','2018-06-02','2018-06-03','2018-06-09','2018-06-10','2018-06-16','2018-07-08','2018-07-14','2018-07-21','2018-07-22','2018-07-29','2018-08-04','2018-08-05','2018-08-11','2018-08-12','2018-08-18','2018-09-08','2018-09-09','2018-09-22','2018-09-23','2018-09-30']
 
-holidays = ['2018-05-28','2018-07-04','2018-09-03','2018-10-08']
+#holidays = ['2018-05-28','2018-07-04','2018-09-03','2018-10-08']
+holidays = weekends[4:8]
 
 def load_work():
     to_load = holidays
@@ -30,7 +31,7 @@ def load_work():
     pool.map(load_day,to_load)
 
 def test_work():
-    to_test = holidays if args.holiday else workdays[:10]
+    to_test = holidays if args.holiday else workdays[:5]
     #no args: ASSTL, -p: PASSTL, -c: SSTL
     method = 'PASSTL' if args.parallel else 'ASSTL'
     if not args.cache_locs:
@@ -67,8 +68,9 @@ def test_work():
                 req_satisfied[name]+=1
             df.at[day,name] = check_time
             df_tf.at[day,name] = ans
-            print('Req {} took {} checks'.format(name,checker.checks))
-            checker.checks=0
+            if not args.parallel:
+                print('Req {} took {} checks'.format(name,checker.checks))
+                checker.checks=0
         print('Finished day {}'.format(day))
         sys.stdout.flush()
     for req in reqs:
@@ -84,14 +86,9 @@ tagToColor = {
     'traffic' : (0,0,0),
     'parking' : (255,255,0),
     'library' : (255,0,255),
-    'park'    : (0,255,255)
+    'park'    : (0,255,255),
+    'high_crime': (255,0,0)
 }
-
-def example_aarhus():
-    path = 'aarhus_data/'
-    graph = sc_loading.load_aarhus_data(path) 
-    sc_plot.plot(graph,tagToColor) 
-    return graph 
 
 def get_graph(city,plot=False):
     graph = sc_loading.get_graph(city)
@@ -132,13 +129,15 @@ parser.add_argument('-m',dest='month',action='store_true')
 parser.add_argument('-w',dest='work',action='store_true')
 parser.add_argument('--comp',dest='comp',action='store_true')
 parser.add_argument('--hol',dest='holiday',action='store_true')
-parser.add_argument('--plot',dest='plot',action='store_true')
 parser.add_argument('--debug',dest='debug',action='store_true')
 parser.add_argument('--cache',dest='cache_locs',action='store_false')
+parser.add_argument('--plot',dest='plot',action='store_true')
 args = parser.parse_args()
 perf = performance.performance_tester()
 if args.comp:
     summarize_comp()
+elif args.plot:
+    get_graph(args.city,plot=True)
 elif args.month:
     pool = Pool(processes=3)
     d_strs = list()
