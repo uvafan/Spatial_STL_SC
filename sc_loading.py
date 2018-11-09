@@ -40,7 +40,7 @@ def load_data(city, day):
         load_chicago_day(day)
 
 #hardcoded for now
-use_params = {'humidity'}
+use_params = {'intensity','concentration','humidity'}
 
 ranges = {
     'co': (0,1000),
@@ -52,7 +52,7 @@ ranges = {
 
 trusted_sensors = {
     'temperature': {'at0','at1','at2','at3','sht25'},
-    'intensity': {'tsl250rd'},
+    'intensity': {'tsl260rd'},
     'humidity': {'hih4030'}
 }
 
@@ -70,7 +70,7 @@ def load_chicago_day(day, sample=float('inf'), folder='/media/sf_D_DRIVE'):
     ctr = 0
     day_path = '{}/chicago_data/{}'.format(folder,day)
     make_dir(day_path)
-    date_rng = pd.date_range(start=day,end=pd.to_datetime(day)+datetime.timedelta(days=1),freq='min')
+    date_rng = pd.date_range(start=day,end=pd.to_datetime(day)+datetime.timedelta(days=1)-datetime.timedelta(minutes=1),freq='min')
     param_dfs = dict()
     data_df = data_df.loc[data_df['parameter'].isin(use_params)]
     for param in use_params:
@@ -185,6 +185,7 @@ def create_chicago_graph():
         graph.add_node(new_node)
     add_pois(graph,amenities=['school','theatre','hospital'])
     graph.add_chi_parks()
+    graph.add_chi_high_crime()
     return graph
 
 def load_parking_locs(path,graph):

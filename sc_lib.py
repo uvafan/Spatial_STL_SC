@@ -77,6 +77,7 @@ class graph:
         self.edges = set()
         self.edge_dict = dict()
         self.city = city
+        self.test = 1
 
     def add_edge(self,edge):
         if edge not in self.edges:
@@ -125,6 +126,17 @@ class graph:
         for p in parks:
             new_node = node('{}{}'.format(id_str,str(c)),p)
             new_node.add_tag('park')
+            new_node.data_node = False
+            self.add_node(new_node)
+            c+=1
+
+    def add_chi_high_crime(self):
+        df = pd.read_csv('crime_data.csv')
+        id_str = 'crime'
+        c = 0
+        for index,row in df.iterrows():
+            new_node = node('{}{}'.format(id_str,str(c)),(row['latitude'],row['longtitude']))
+            new_node.add_tag('high_crime')
             new_node.data_node = False
             self.add_node(new_node)
             c+=1

@@ -28,6 +28,7 @@ class sstl_checker:
         self.params = params
         self.workers = cpu_count()
         self.prep_for_comparisons()
+        self.checks=0
 
     def log(self,s):
         if self.debug:
@@ -113,7 +114,7 @@ class sstl_checker:
         return distance.vincenty(coordsA,coordsB).km
 
     def get_nodes(self,node_ID,dist_range,last_spatial,param,tags=set()):
-        dict_key = (dist_range,tuple(tags),last_spatial,param)
+        dict_key = (self.day,dist_range,tuple(tags),last_spatial,param)
         node = self.graph.nodes_by_ID[node_ID] if node_ID else None
         if node and self.cache_locs and dict_key in node.loc_dict:
             return node.loc_dict[dict_key]
@@ -129,8 +130,8 @@ class sstl_checker:
                 if not self.in_range(dist,dist_range):
                     continue
             nodes.add(n.ID)
-        if check_dist:
-            self.log('found {} nodes in range'.format(len(nodes)))
+        if last_spatial and not self.parallel:
+            self.checks+=len(nodes)
         if node and self.cache_locs:
             node.loc_dict[dict_key] = nodes
         return nodes
@@ -142,7 +143,7 @@ class sstl_checker:
         aggregation_op,dist_range,param,val_range = self.parse_aggregation_str(agg_str)
         if aggregation_op:
             return False, param
-        spatial_operators = set(['S','W'])
+        spatial_operators = {'S','W','C'}
         for i in range(1,len(spec_str)):
             if spec_str[i] in spatial_operators:
                 return False, param
@@ -158,7 +159,7 @@ class sstl_checker:
         po = not agg
         assert(len(if_specs)<3)
         if len(if_specs) > 1:
-            return not self.check_spec(if_specs[0],time=time,node_ID=node_ID,parse_ops=po,parallelized=parallelized) or self.check_spec(if_specs[1],time=time,node_ID=node_ID,parse_ops=po,parallelized=parallelized)
+            return (not self.check_spec(if_specs[0],time=time,node_ID=node_ID,parse_ops=po,parallelized=parallelized)) or self.check_spec(if_specs[1],time=time,node_ID=node_ID,parse_ops=po,parallelized=parallelized)
         or_specs = spec_str.split(or_str)
         if len(or_specs) > 1:
             return self.check_spec(or_specs[0],time=time,node_ID=node_ID,parse_ops=po,parallelized=parallelized) or self.check_spec(or_specs[1],time=time,node_ID=node_ID,parse_ops=po,parallelized=parallelized)
@@ -192,8 +193,6 @@ class sstl_checker:
                 result = self.check_spec(next_spec_str,node_ID=node_ID,nodes=nodes,time=t,parse_ops=False,parallelized=parallelized)
                 if result != -1 and not result:
                     return False
-            if self.debug:
-                perf.checkpoint('finishing one node')
             return True
         #Eventually
         elif spec_str[0] == 'E':
@@ -207,26 +206,33 @@ class sstl_checker:
                     return True
             return False
         #Everywhere
-        elif spec_str[0] == 'W':
+        elif spec_str[0] == 'W' or spec_str[0] == 'C':
             dist_range,tags,next_spec_str = self.parse_spec_str(spec_str)
             last_spatial, param = self.look_ahead(spec_str)
+            violations = 0
             if not nodes:
                 nodes = self.get_nodes(node_ID,dist_range,last_spatial,param,tags=tags)
             if self.parallel and not parallelized:
                 pool = Pool(processes=self.workers)
                 for n,result in zip(nodes, pool.starmap(self.check_spec,product([next_spec_str],nodes,[time],[True],[False]))):
                     if result != -1 and not result:
-                        pool.close()
-                        pool.join()
-                        return False
+                        if spec_str[0]=='C':
+                            violations+=1
+                        else:
+                            pool.close()
+                            pool.join()
+                            return False
                 pool.close()
                 pool.join()
-                return True
+                return True if spec_str[0]=='W' else violations
             for n in nodes:
                 result = self.check_spec(next_spec_str,node_ID=n,time=time,parse_ops=False,parallelized=parallelized)
                 if result != -1 and not result:
-                    return False
-            return True
+                    if spec_str[0]=='C':
+                        violations+=1
+                    else:
+                        return False
+            return True if spec_str[0]=='W' else violations
         #Somewhere
         elif spec_str[0] == 'S':
             dist_range,tags,next_spec_str = self.parse_spec_str(spec_str)
