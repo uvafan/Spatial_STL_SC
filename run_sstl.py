@@ -31,7 +31,7 @@ def load_work():
     pool.map(load_day,to_load)
 
 def test_work():
-    to_test = holidays if args.holiday else workdays[:5]
+    to_test = holidays if args.holiday else workdays
     #no args: ASSTL, -p: PASSTL, -c: SSTL
     method = 'PASSTL' if args.parallel else 'ASSTL'
     if not args.cache_locs:

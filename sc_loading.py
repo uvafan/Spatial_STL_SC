@@ -180,6 +180,8 @@ def get_graph(city):
         return create_chicago_graph()
     elif city == 'aarhus':
         return create_aarhus_graph('/media/sf_D_DRIVE/aarhus_raw') 
+    elif city == 'new_york':
+        return create_new_york_graph()
 
 def create_chicago_graph():
     node_df = pd.read_csv('/media/sf_D_DRIVE/chicago_raw/nodes.csv')
@@ -263,3 +265,11 @@ def create_aarhus_graph(path):
     load_library_locs(path,graph)
     add_pois(graph,amenities=['school'],dist=10000)
     return graph
+
+def create_new_york_graph():
+    graph = sc_lib.graph('new_york')
+    graph.add_OSMnx_data_within_dist((40.7831,-73.9712),dist=2000)
+    add_pois(graph,amenities=['school','hospital','theatre'],dist=2000)
+    graph.add_ny_parks()
+    return graph
+
