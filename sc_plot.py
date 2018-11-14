@@ -44,7 +44,7 @@ def plot(graph,tag_to_color,directed=True,):
                                'start_lat':node.coordinates[0], 'end_lat':successor.coordinates[0]})
     
     df_edges = pd.DataFrame(plot_edges)
-  
+    ''' 
     if not df_edges.empty: 
         geoplotlib.graph(df_edges,
                         src_lat='start_lat',
@@ -54,7 +54,7 @@ def plot(graph,tag_to_color,directed=True,):
                         color='Dark2',
                         alpha=30,
                         linewidth=3)
-
+    '''
     for color, nodes_list in color_to_nodes_pois.items():
         nodes_df = pd.DataFrame(nodes_list)
         color = list(color)

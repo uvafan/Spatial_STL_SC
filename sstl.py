@@ -189,11 +189,14 @@ class sstl_checker:
             datetime_rng = self.get_datetime_range(time,time_range)
             if not node_ID and next_spec_str[0] in ['E','W','<']:
                 nodes = self.get_nodes_lookahead(next_spec_str)
+            ret = -1
             for t in datetime_rng:
                 result = self.check_spec(next_spec_str,node_ID=node_ID,nodes=nodes,time=t,parse_ops=False,parallelized=parallelized)
                 if result != -1 and not result:
                     return False
-            return True
+                elif result != -1:
+                    ret = True
+            return ret
         #Eventually
         elif spec_str[0] == 'E':
             time_range,tags,next_spec_str = self.parse_spec_str(spec_str)
@@ -206,33 +209,58 @@ class sstl_checker:
                     return True
             return False
         #Everywhere
-        elif spec_str[0] == 'W' or spec_str[0] == 'C':
+        elif spec_str[0] == 'W' or spec_str[0] == 'C' or spec_str[0] == 'P':
+            pct_required = 0
+            if spec_str[0]=='P':
+                pct_required = float(spec_str[1:3])
+                spec_str = spec_str[0]+spec_str[3:]
             dist_range,tags,next_spec_str = self.parse_spec_str(spec_str)
             last_spatial, param = self.look_ahead(spec_str)
             violations = 0
             if not nodes:
                 nodes = self.get_nodes(node_ID,dist_range,last_spatial,param,tags=tags)
+            nodes_checked=0
+            ret = -1
             if self.parallel and not parallelized:
                 pool = Pool(processes=self.workers)
                 for n,result in zip(nodes, pool.starmap(self.check_spec,product([next_spec_str],nodes,[time],[True],[False]))):
+                    if result != -1:
+                        nodes_checked+=1
                     if result != -1 and not result:
-                        if spec_str[0]=='C':
+                        if spec_str[0]!='W':
                             violations+=1
                         else:
                             pool.close()
                             pool.join()
                             return False
+                    elif result != -1:
+                        ret = True
                 pool.close()
                 pool.join()
-                return True if spec_str[0]=='W' else violations
+                if spec_str[0]=='W':
+                    return ret
+                elif spec_str[0]=='C':
+                    return violations
+                else:
+                    return True if nodes_checked == 0 else (((1-violations/nodes_checked)*100)>pct_required) 
+            ret = -1
             for n in nodes:
                 result = self.check_spec(next_spec_str,node_ID=n,time=time,parse_ops=False,parallelized=parallelized)
+                if result != -1:
+                    nodes_checked+=1
                 if result != -1 and not result:
-                    if spec_str[0]=='C':
+                    if spec_str[0]!='W':
                         violations+=1
                     else:
                         return False
-            return True if spec_str[0]=='W' else violations
+                elif result != -1:
+                    ret = True
+            if spec_str[0]=='W':
+                return ret
+            elif spec_str[0]=='C':
+                return violations
+            else:
+                return True if nodes_checked == 0 else (((1-violations/nodes_checked)*100)>pct_required) 
         #Somewhere
         elif spec_str[0] == 'S':
             dist_range,tags,next_spec_str = self.parse_spec_str(spec_str)

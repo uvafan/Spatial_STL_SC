@@ -12,18 +12,18 @@ import osmnx as ox
 import sys
 import os
 import datetime
+import json
 from collections import defaultdict
+from copy import deepcopy
 
 def load_nyc_data(graph, fin):
     f = open(fin, 'r')
     cols = f.readline().strip().split(',')
     for line in f:
         for node in graph.nodes:
-            
             if type(node.name) == str: 
                 if line.split(",")[2].lower().strip() == node.name.lower().strip():
                     node.data.append(line.strip().split(','))
-    
     for node in graph.nodes:
         node.data = pd.DataFrame(node.data, columns=cols)
         graph.dataframe.append(node.data)    
@@ -38,6 +38,8 @@ def make_dir(path):
 def load_data(city, day):
     if city == 'chicago':
         load_chicago_day(day)
+    elif city == 'aarhus':
+        load_aarhus()
 
 #hardcoded for now
 use_params = {'intensity','concentration','humidity'}
@@ -175,6 +177,10 @@ def process_param_df(param,param_df,param_dfs,node_id):
 def get_graph(city):
     if city == 'chicago':
         return create_chicago_graph()
+    elif city == 'aarhus':
+        return create_aarhus_graph('/media/sf_D_DRIVE') 
+    elif city == 'new_york':
+        return create_new_york_graph()
 
 def create_chicago_graph():
     node_df = pd.read_csv('/media/sf_D_DRIVE/chicago_raw/nodes.csv')
@@ -189,15 +195,7 @@ def create_chicago_graph():
     return graph
 
 def load_parking_locs(path,graph):
-    fin = '{}parking/aarhus_parking_address.csv'.format(path)
-    df = pd.read_csv(fin)
-    start = len(graph.nodes)
-    for index, row in df.iterrows():
-        new_node = sc_lib.node(row['garagecode'],(row['latitude'],row['longitude']))
-        new_node.add_tag('parking')
-
-def load_parking_locs(path,graph):
-    fin = '{}parking/aarhus_parking_address.csv'.format(path)
+    fin = '{}/aarhus_raw/parking/aarhus_parking_address.csv'.format(path)
     df = pd.read_csv(fin)
     start = len(graph.nodes)
     for index, row in df.iterrows():
@@ -210,35 +208,177 @@ def midpoint(p1,p2):
     return ((p1[0]+p2[0])/2,(p1[1]+p2[1])/2)
 
 def load_traffic_locs(path,graph):
-    fin = '{}traffic/trafficMetaData.csv'.format(path)
+    fin = '{}/aarhus_raw/traffic/trafficMetaData.csv'.format(path)
     df = pd.read_csv(fin)
     start = len(graph.nodes)
     for index, row in df.iterrows():
         p1 = (row['POINT_1_LAT'],row['POINT_1_LNG'])
         p2 = (row['POINT_2_LAT'],row['POINT_2_LNG'])
-        new_node = sc_lib.node(row['extID'],midpoint(p1,p2))
+        new_node = sc_lib.node(row['REPORT_ID'],midpoint(p1,p2))
         new_node.add_tag('traffic')
         graph.add_node(new_node)        
     #print('traffic: {} nodes'.format(len(graph.nodes)-start))
 
 def load_library_locs(path,graph):
-    fin = '{}library_events/aarhus_libraryEvents.csv'.format(path)
+    fin = '{}/aarhus_raw/library_events/aarhus_libraryEvents.csv'.format(path)
     df = pd.read_csv(fin)
     start = len(graph.nodes)
     for index, row in df.iterrows():
-        new_node = sc_lib.node(row['lid'],(row['latitude'],row['longitude']))
+        new_node = sc_lib.node(row['library'],(row['latitude'],row['longitude']))
         new_node.add_tag('library')
         graph.add_node(new_node)        
     #print('library: {} nodes'.format(len(graph.nodes)-start))
 
-def add_pois(graph,amenities=None,dist=5000):
+def load_weather_locs(path,graph):
+    new_node = sc_lib.node('weather',graph.centroid())
+    new_node.add_tag('weather')
+    graph.add_node(new_node)
+
+def add_pois(graph,amenities=None,dist=15000):
     p = graph.centroid()
     graph.add_OSMnx_pois(amenities=['school','theatre','hospital'],p=p,dist=dist)
 
-def load_aarhus_data(path):
-    graph = sc_lib.graph()
+def load_parking_data(path,day_dfs):
+    data_df = pd.read_csv('{}/aarhus_raw/parking/aarhus_parking.csv'.format(path))
+    data_df['updatetime'] = pd.to_datetime(data_df['updatetime'])
+    data_df = data_df.set_index('updatetime')
+    for day,day_df in day_dfs.items():
+        data_day_df = data_df[day_df.index[0]:day_df.index[-1]]
+        for garage in data_day_df['garagecode'].unique():
+            garage_df = data_day_df[data_day_df['garagecode']==garage]
+            day_df[garage] = np.nan
+            for tm,row in garage_df.iterrows():
+                minute = tm - datetime.timedelta(seconds=tm.second,microseconds=tm.microsecond)
+                try:
+                    val = float(row['totalspaces'])-float(row['vehiclecount'])
+                    day_df.at[minute,garage] = val
+                except ValueError:
+                    continue
+        day_df.to_csv('{}/aarhus_data/{}/spots.csv'.format(path,day))
+
+def load_traffic_data(path,day_dfs):
+    for fin in os.listdir('{}/aarhus_raw/traffic/traffic_june_sep/'.format(path)):
+        data_df = pd.read_csv('{}/aarhus_raw/traffic/traffic_june_sep/{}'.format(path,fin))
+        data_df['TIMESTAMP'] = pd.to_datetime(data_df['TIMESTAMP'])
+        data_df = data_df.set_index('TIMESTAMP').sort_index()
+        for day,day_df in day_dfs.items():
+            data_day_df = data_df[day_df.index[0]:day_df.index[-1]]
+            for ID in data_day_df['REPORT_ID'].unique():
+                df = data_day_df[data_day_df['REPORT_ID']==ID]
+                day_df[ID] = np.nan
+                for tm,row in df.iterrows():
+                    minute = tm - datetime.timedelta(seconds=tm.second,microseconds=tm.microsecond)
+                    try:
+                        val = float(row['vehicleCount'])
+                        day_df.at[minute,ID] = val
+                    except ValueError:
+                        continue
+    for day,day_df in day_dfs.items():
+        day_df.to_csv('{}/aarhus_data/{}/vehicles.csv'.format(path,day))
+
+def load_weather_data(path,day_dfs):
+    for day,day_df in day_dfs.items():
+        day_df['weather']=np.nan
+    params = ['hum']
+    for param in params:
+        fin = open('{}/aarhus_raw/weather/{}.txt'.format(path,param),'r')
+        for line in fin:
+            data = json.loads(line[:-1])
+            for tm,val in data.items():
+                day = tm[:10]
+                try:
+                    day_dfs[day].at[pd.to_datetime(tm),'weather'] = float(val)
+                except ValueError:
+                    continue
+        for day,day_df in day_dfs.items():
+            day_df.to_csv('{}/aarhus_data/{}/{}.csv'.format(path,day,param))
+            day_df = pd.DataFrame()
+
+def load_event_data(path,day_dfs):
+    data_df = pd.read_csv('{}/aarhus_raw/library_events/aarhus_libraryEvents.csv'.format(path))
+    data_df['starttime'] = pd.to_datetime(data_df['starttime'])
+    data_df['endtime'] = pd.to_datetime(data_df['endtime'])
+    data_df = data_df.set_index('endtime').sort_index()
+    data_df = data_df[pd.to_datetime('2014-08-01'):]
+    data_df['endtime'] = data_df.index
+    data_df = data_df.set_index('starttime').sort_index()
+    data_df = data_df[:pd.to_datetime('2014-10-01')]
+    for index,row in data_df.iterrows():
+        start = index
+        end = row['endtime']
+        start_min = start - datetime.timedelta(seconds=start.second,microseconds=start.microsecond)
+        end_min = end - datetime.timedelta(seconds=end.second,microseconds=end.microsecond)
+        for minute in pd.date_range(start=start_min,end=end_min,freq='min'):
+            day = str(minute)[:10]
+            if day not in day_dfs:
+                break
+            if row['library'] not in day_dfs[day].columns:
+                day_dfs[day][row['library']] = 0
+            day_dfs[day].at[minute,row['library']]=1
+    for day,day_df in day_dfs.items():
+        day_df.to_csv('{}/aarhus_data/{}/event.csv'.format(path,day))
+
+def load_aarhus(path='/media/sf_D_DRIVE'):
+    days = pd.date_range(start='2014-08-01',end='2014-09-30',freq='D')
+    day_dfs = dict()
+    for day in days:
+        day_str = str(day).split()[0]
+        make_dir('{}/aarhus_data/{}'.format(path,day_str))
+        mins = pd.date_range(start=day,end=day+datetime.timedelta(days=1)-datetime.timedelta(minutes=1),freq='min')
+        day_dfs[day_str] = pd.DataFrame(index=mins)
+    #load_parking_data(path,deepcopy(day_dfs))
+    #load_traffic_data(path,deepcopy(day_dfs))
+    #load_weather_data(path,deepcopy(day_dfs))
+    load_event_data(path,deepcopy(day_dfs))
+   
+CLOSE_THRESHOLD = 2
+def add_aarhus_school_event_data(path,graph):
+    days = pd.date_range(start='2014-08-01',end='2014-09-30',freq='D')
+    day_dfs = dict()
+    for day in days:
+        day_str = str(day).split()[0]
+        mins = pd.date_range(start=day,end=day+datetime.timedelta(days=1)-datetime.timedelta(minutes=1),freq='min')
+        day_dfs[day_str] = pd.DataFrame(index=mins)
+    school_nodes = graph.get_nodes_with_tag('school')
+    for node in school_nodes:
+        node.data_node=True
+    lib_nodes = graph.get_nodes_with_tag('library')
+    close_schools = defaultdict(list)
+    for lib in lib_nodes:
+        for school in school_nodes:
+            if lib.dist_to(school)<CLOSE_THRESHOLD:
+                close_schools[lib.ID].append(school.ID)
+    for day,day_df in day_dfs.items():
+        data_df = pd.read_csv('{}/aarhus_data/{}/event.csv'.format(path,day),index_col=0)
+        for lib in data_df.columns:
+            schools = close_schools[lib]
+            for school in schools:
+                if school not in day_df.columns:
+                    day_df = day_df.join(data_df[lib])
+                    day_df[school] = day_df[lib]
+                    day_df = day_df.drop(lib,axis=1)
+                else:
+                    day_df = day_df.assign(temp=data_df[lib])
+                    day_df[school] = day_df[school]+day_df['temp']
+                    day_df = day_df.drop('temp',axis=1)
+        day_df.to_csv('{}/aarhus_data/{}/nearby_event.csv'.format(path,day))
+
+
+def create_aarhus_graph(path):
+    graph = sc_lib.graph('aarhus')
     load_parking_locs(path,graph)
     load_traffic_locs(path,graph)
     load_library_locs(path,graph)
-    add_pois(graph,amenities=['school','theatre','hospital'])
+    add_pois(graph,amenities=['school'],dist=10000)
+    load_weather_locs(path,graph)
+    #add_aarhus_school_event_data(path,graph)
     return graph
+
+def create_new_york_graph():
+    graph = sc_lib.graph('new_york')
+    graph.add_OSMnx_data_within_dist((40.7831,-73.9712),dist=2000)
+    add_pois(graph,amenities=['school','hospital','theatre'],dist=2000)
+    graph.add_ny_parks()
+    #print(len(graph.nodes))
+    return graph
+
