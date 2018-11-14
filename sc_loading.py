@@ -363,7 +363,6 @@ def add_aarhus_school_event_data(path,graph):
                     day_df = day_df.drop('temp',axis=1)
         day_df.to_csv('{}/aarhus_data/{}/nearby_event.csv'.format(path,day))
 
-
 def create_aarhus_graph(path):
     graph = sc_lib.graph('aarhus')
     load_parking_locs(path,graph)
@@ -381,4 +380,3 @@ def create_new_york_graph():
     graph.add_ny_parks()
     #print(len(graph.nodes))
     return graph
-
