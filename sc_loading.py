@@ -174,15 +174,16 @@ def process_param_df(param,param_df,param_dfs,node_id):
             except ValueError:
                 continue
 
-def get_graph(city):
+def get_graph(city,amenities):
     if city == 'chicago':
-        return create_chicago_graph()
+        return create_chicago_graph(amenities)
     elif city == 'aarhus':
-        return create_aarhus_graph('/media/sf_D_DRIVE') 
-    elif city == 'new_york':
-        return create_new_york_graph()
+        return create_aarhus_graph('/media/sf_D_DRIVE',amenities)
+    elif city == 'new_york' or city == 'new york':
+        return create_new_york_graph(amenities)
+    raise Exception('Unrecognized city name: {}'.format(city))
 
-def create_chicago_graph():
+def create_chicago_graph(amenities):
     node_df = pd.read_csv('/media/sf_D_DRIVE/chicago_raw/nodes.csv')
     graph = sc_lib.graph('chicago')
     for index, row in node_df.iterrows():
@@ -363,20 +364,20 @@ def add_aarhus_school_event_data(path,graph):
                     day_df = day_df.drop('temp',axis=1)
         day_df.to_csv('{}/aarhus_data/{}/nearby_event.csv'.format(path,day))
 
-def create_aarhus_graph(path):
+def create_aarhus_graph(path,amenities):
     graph = sc_lib.graph('aarhus')
     load_parking_locs(path,graph)
     load_traffic_locs(path,graph)
     load_library_locs(path,graph)
-    add_pois(graph,amenities=['school'],dist=10000)
+    add_pois(graph,amenities=amenities,dist=10000)
     load_weather_locs(path,graph)
     #add_aarhus_school_event_data(path,graph)
     return graph
 
-def create_new_york_graph():
+def create_new_york_graph(amenities):
     graph = sc_lib.graph('new_york')
     graph.add_OSMnx_data_within_dist((40.7831,-73.9712),dist=2000)
-    add_pois(graph,amenities=['school','hospital','theatre'],dist=2000)
+    add_pois(graph,amenities=amenities,dist=2000)
     graph.add_ny_parks()
     #print(len(graph.nodes))
     return graph

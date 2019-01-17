@@ -17,7 +17,7 @@ Loads in nodes according to their coordinates, edges connecting those coordinate
     Green is used to represent nodes (using the tf_satisfied attribute of the node)
     which are satisfied, and red to represent those unsatisfied.
 '''
-def plot(graph,tag_to_color,directed=True,): 
+def plot(graph,tag_to_color,directed=True): 
     color_to_nodes_data = defaultdict(list)
     color_to_nodes_pois = defaultdict(list)
     plot_edges = list()
@@ -37,9 +37,9 @@ def plot(graph,tag_to_color,directed=True,):
         if not directed:
             neighbors = neighbors.union(node.predecessors)
         for successor in neighbors:
-            if node.coordinates[1] == successor.coordinates[1] and node.coordinates[0] == successor.coordinates[0]:
-                print(node)
-                print(successor)
+            #if node.coordinates[1] == successor.coordinates[1] and node.coordinates[0] == successor.coordinates[0]:
+             #   print(node)
+             #   print(successor)
             plot_edges.append({'start_lon':node.coordinates[1], 'end_lon':successor.coordinates[1],
                                'start_lat':node.coordinates[0], 'end_lat':successor.coordinates[0]})
     
