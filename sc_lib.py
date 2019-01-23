@@ -101,6 +101,12 @@ class graph:
     def a_node(self):
         return next(iter(self.nodes))
 
+    def add_node_with_tag(self,ID,loc,tag):
+        new_node = node(ID,loc)
+        new_node.add_tag(tag)
+        new_node.data_node=False
+        self.add_node(new_node)
+
     #add OSM points of interest to graph within distance dist of point p
     def add_OSMnx_pois(self,amenities=None,p=None,dist=2500,north=None,south=None,east=None,west=None):
         nearby_pois = None
