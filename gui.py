@@ -16,7 +16,7 @@ class Application(tk.Frame):
         
     def create_widgets(self):
         self.create_area_input(0,0)
-        self.create_data_input(0,200)
+        self.create_data_input(0,210)
 
     def create_data_input(self,xoff,yoff):
         data=tk.Label(self.master,text='Data')
@@ -43,35 +43,35 @@ class Application(tk.Frame):
         add_area.place(x=xoff+55,y=yoff+10,width=20,height=20)
         clear = tk.Button(self.master, text='Clear', fg='white',bg='gray',
                               command=self.clear_action)
-        clear.place(x=xoff+300,y=yoff+10)
+        clear.place(x=xoff+350,y=yoff+10)
         start = tk.Button(self.master, text='Start the monitor', fg='white',bg='green',
                               command=self.start_action)
-        start.place(x=xoff+375,y=yoff+10)
+        start.place(x=xoff+425,y=yoff+10)
         city_name = tk.Label(self.master,text='City Name')
-        city_name.place(x=xoff+85,y=yoff+35)
+        city_name.place(x=xoff+85,y=yoff+45)
         self.city_entry = tk.Entry(self.master)
-        self.city_entry.place(x=xoff+170,y=yoff+35,width=100)
+        self.city_entry.place(x=xoff+170,y=yoff+45,width=100)
         OR = tk.Label(self.master,text='OR')
-        OR.place(x=xoff+60,y=yoff+55)
+        OR.place(x=xoff+60,y=yoff+65)
         coords = tk.Label(self.master,text='Coordinates')
-        coords.place(x=xoff+85,y=yoff+75)
+        coords.place(x=xoff+85,y=yoff+85)
         self.coords_entry = tk.Entry(self.master)
-        self.coords_entry.place(x=xoff+170,y=yoff+75,width=100)
+        self.coords_entry.place(x=xoff+170,y=yoff+85,width=100)
         rangel = tk.Label(self.master,text='Range')
-        rangel.place(x=xoff+280,y=yoff+75)
+        rangel.place(x=xoff+280,y=yoff+65)
         self.range_entry = tk.Entry(self.master)
-        self.range_entry.place(x=xoff+330,y=yoff+75,width=50)
+        self.range_entry.place(x=xoff+330,y=yoff+65,width=50)
         km = tk.Label(self.master,text='km')
-        km.place(x=xoff+380,y=yoff+75)
+        km.place(x=xoff+380,y=yoff+65)
         show_map = tk.Button(self.master, text='Show Map', fg='black',bg='white',
                               command=self.show_map)
-        show_map.place(x=xoff+445,y=yoff+70)
+        show_map.place(x=xoff+410,y=yoff+60)
         pois = tk.Label(self.master,text='Point Of Interests Label')
-        pois.place(x=xoff+50,y=yoff+110)
+        pois.place(x=xoff+50,y=yoff+120)
         self.menu_x=xoff+210
-        self.menu_y=yoff+105
+        self.menu_y=yoff+115
         self.poi_list_x=xoff+50
-        self.poi_list_y=yoff+145
+        self.poi_list_y=yoff+155
         self.add_poi_menu_and_list()
         add_label = tk.Button(self.master,text='+',fg='white',bg='green',command=self.add_label_action)
         add_label.place(x=self.menu_x+90,y=self.menu_y+5,width=20,height=20)
@@ -124,8 +124,9 @@ class Application(tk.Frame):
 
     def show_map(self):
         city_entered = self.city_entry.get()
+        rang = int(self.range_entry.get())*1000
         if len(city_entered):
-            graph = sc_loading.get_graph(city_entered.lower(),self.amenities)
+            graph = sc_loading.get_graph_city(city_entered.lower(),self.amenities,rang)
             sc_plot.plot(graph,self.amenitiesToColor)
         else:
             pass
