@@ -17,7 +17,7 @@ class Application(tk.Frame):
         self.labels = []
         self.vars = []
         self.label_to_color = dict()
-        self.available_colors = [(255,0,0),(0,255,0),(0,0,255),(255,255,0),(255,0,255)]
+        self.available_colors = [(255,0,0),(0,255,0),(0,0,255),(255,255,0),(255,0,255),(0,255,255)]
         self.create_widgets()
         
     def create_widgets(self):
@@ -79,21 +79,23 @@ class Application(tk.Frame):
         self.label_list_x=xoff+50
         self.label_list_y=yoff+155
         self.add_label_menu_and_list()
-        add_label2 = tk.Button(self.master,text='+',fg='white',bg='green',command=self.add_label_action)
-        add_label2.place(x=self.menu_x+90,y=self.menu_y+5,width=20,height=20)
+        add_existing_label = tk.Button(self.master,text='+',fg='white',bg='green',command=self.add_existing_label)
+        add_existing_label.place(x=self.menu_x+110,y=self.menu_y+5,width=20,height=20)
         add_loc_txt = tk.Label(self.master,text='Add a location')
-        add_loc_txt.place(x=self.menu_x+130,y=self.menu_y+5)
+        add_loc_txt.place(x=self.menu_x+150,y=self.menu_y+5)
         add_loc = tk.Button(self.master,text='+',fg='white',bg='green',command=self.add_loc_action)
-        add_loc.place(x=self.menu_x+230,y=self.menu_y+5,width=20,height=20)
+        add_loc.place(x=self.menu_x+250,y=self.menu_y+5,width=20,height=20)
         
     def add_label_menu_and_list(self):
         self.label_menu_input = tk.StringVar(self.master)
         if len(self.label_options):
             self.label_menu_input.set(self.label_options[0])
+            self.selected_label = self.label_options[0]
         else:
             self.label_menu_input.set('')
-        self.label_menu = tk.OptionMenu(self.master,self.label_menu_input,*tuple(self.label_options))
-        self.label_menu.place(x=self.menu_x,y=self.menu_y)
+            self.selected_label = ''
+        self.label_menu = tk.OptionMenu(self.master,self.label_menu_input,*tuple(self.label_options),command=self.update_selected_label)
+        self.label_menu.place(x=self.menu_x,y=self.menu_y,width=105)
         self.label_list_widgets = []
         cur_x = self.label_list_x
         cur_y = self.label_list_y
@@ -116,6 +118,9 @@ class Application(tk.Frame):
             cur_x+=22+len(a)*7.5+45
             self.label_list_widgets.extend([remove,text,canvas])
 
+    def update_selected_label(self,value):
+        self.selected_label = value
+
     def refresh_label_menu_and_list(self):
         self.label_menu.destroy()
         for w in self.label_list_widgets:
@@ -135,14 +140,14 @@ class Application(tk.Frame):
         graph = None
         amenities = [l for l in self.labels if l in self.amenity_options]
         if len(city_entered):
-            graph = sc_loading.get_graph_city(city_entered.lower(),self.amenities,rang)
+            graph = sc_loading.get_graph_city(city_entered.lower(),amenities,rang)
         else:
             pass
         if graph:
             for label in self.labels:
                 for node in self.label_to_nodes[label]:
                     graph.add_node(node)
-        sc_plot.plot(graph,self.labelsToColor)
+        sc_plot.plot(graph,self.label_to_color)
         self.city_entry.delete(0,'end')
         self.range_entry.delete(0,'end')
         self.coords_entry.delete(0,'end')
@@ -181,6 +186,11 @@ class Application(tk.Frame):
         self.var_entry.delete(0,'end')
         self.refresh_var_list()
 
+    def add_existing_label(self):
+        self.labels.append(self.selected_label)
+        self.label_options.remove(self.selected_label)
+        self.refresh_label_menu_and_list()
+
     def add_label_action(self):
         add_label_root = tk.Tk()
         add_app = AddLabelApp(add_label_root,self)
@@ -188,24 +198,68 @@ class Application(tk.Frame):
 
     def add_loc_action(self):
         add_loc_root = tk.Tk()
-        add_app = AddLocApp(add_loc_root)
+        add_app = AddLocApp(add_loc_root,self)
         add_app.mainloop()
 
-class AreaApp(tk.Frame):
-    def __init__(self,master):
+class AddLocApp(tk.Frame):
+    def __init__(self,master,parent):
         super().__init__(master)
         self.master = master
-        self.master.geometry('500x200+100+100')
+        self.master.geometry('550x75+100+100')
+        self.parent = parent
+        self.create_widgets()
+
+    def create_widgets(self):
+        add_label = tk.Label(self.master,text='Add new location to monitor')
+        add_label.place(x=5,y=10)
+        name_label = tk.Label(self.master,text='Name')
+        name_label.place(x=5,y=35)
+        self.name_entry = tk.Entry(self.master)
+        self.name_entry.place(x=50,y=35,width=100)
+        gps_label = tk.Label(self.master,text='GPS Coordinates')
+        gps_label.place(x=160,y=35)
+        self.gps_entry = tk.Entry(self.master)
+        self.gps_entry.place(x=275,y=35,width=170)
+        add_button = tk.Button(self.master,command=self.add,bg='white',fg='black',text='Add')
+        add_button.place(x=460,y=35)
+
+    def add(self):
+        name = self.name_entry.get()
+        coords = tuple([float(a) for a in self.gps_entry.get().split(',')])
+        self.parent.labels.append(name)
+        new_node = sc_lib.node(name,coords)
+        new_node.data_node=False
+        new_node.add_tag(name)
+        self.parent.label_to_nodes[name].append(new_node)
+        self.gps_entry.delete(0,'end')
+        self.name_entry.delete(0,'end')
+        self.parent.refresh_label_menu_and_list()
 
 class AddLabelApp(tk.Frame):
     def __init__(self,master,parent):
         super().__init__(master)
         self.master = master
-        self.master.geometry('500x125+100+100')
+        self.master.geometry('625x125+100+100')
         self.parent = parent
         self.create_widgets()
 
     def create_widgets(self):
+        create_label = tk.Label(self.master,text='Add new location to existing label')
+        create_label.place(x=5,y=10)
+        label_label = tk.Label(self.master,text='Label')
+        label_label.place(x=5,y=35)
+        self.label_entry = tk.Entry(self.master)
+        self.label_entry.place(x=50,y=35,width=100)
+        name_label = tk.Label(self.master,text='Name')
+        name_label.place(x=160,y=35)
+        self.name_entry = tk.Entry(self.master)
+        self.name_entry.place(x=205,y=35,width=100)
+        gps_label = tk.Label(self.master,text='GPS Coordinates')
+        gps_label.place(x=310,y=35)
+        self.gps_entry = tk.Entry(self.master)
+        self.gps_entry.place(x=425,y=35,width=170)
+        or_label = tk.Label(self.master,text='OR')
+        or_label.place(x=5,y=55)
         create_label = tk.Label(self.master,text='Create a new label')
         create_label.place(x=5,y=75)
         self.create_entry = tk.Entry(self.master)
@@ -215,15 +269,21 @@ class AddLabelApp(tk.Frame):
     
     def add_to_map(self):
         new_label = self.create_entry.get()
-        self.parent.labels.append(new_label)
-        self.parent.refresh_label_menu_and_list()
-        self.create_entry.delete(0,'end')
-
-class AddLocApp(tk.Frame):
-    def __init__(self,master):
-        super().__init__(master)
-        self.master = master
-        self.master.geometry('500x200+100+100')
+        if len(new_label):
+            self.parent.labels.append(new_label)
+            self.parent.refresh_label_menu_and_list()
+            self.create_entry.delete(0,'end')
+        else:
+            label = self.label_entry.get()
+            name = self.name_entry.get()
+            coords = tuple([float(a) for a in self.gps_entry.get().split(',')])
+            new_node = sc_lib.node(name,coords)
+            new_node.data_node=False
+            new_node.add_tag(label)
+            self.parent.label_to_nodes[label].append(new_node)
+            self.gps_entry.delete(0,'end')
+            self.label_entry.delete(0,'end')
+            self.name_entry.delete(0,'end')
 
 root = tk.Tk()
 app = Application(master=root)

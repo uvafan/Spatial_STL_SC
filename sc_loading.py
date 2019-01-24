@@ -191,7 +191,7 @@ def create_chicago_graph(amenities,rang):
         new_node = sc_lib.node(row['node_id'],p)
         graph.add_node(new_node)
     add_pois(graph,amenities=['school','theatre','hospital'],dist=rang)
-    graph.add_chi_parks()
+    #graph.add_chi_parks()
     graph.add_chi_high_crime()
     return graph
 
