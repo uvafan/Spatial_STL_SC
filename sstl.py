@@ -17,16 +17,17 @@ from geopy import distance
 from collections import defaultdict
 
 class sstl_checker:
-    def __init__(self, G, day, parallel=True, cache_locs=True, debug=False, params=None):
+    def __init__(self, G, day, paramToPath, parallel=False, cache_locs=True, debug=False):
         self.graph = G
         self.loc = tuple()
         self.day = day
-        self.path = '/media/sf_D_DRIVE/{c}_data/{d}'.format(c=self.graph.city,d=day)
+        #self.path = '/media/sf_D_DRIVE/{c}_data/{d}'.format(c=self.graph.city,d=day)
         self.cache_locs = cache_locs
         self.debug = debug
         self.parallel = parallel
-        self.params = params
         self.workers = cpu_count()
+        self.paramToPath = paramToPath
+        self.params = paramToPath.keys()
         self.prep_for_comparisons()
         self.checks=0
 
@@ -39,12 +40,11 @@ class sstl_checker:
 
     def get_df(self,param):
         if param not in self.param_dfs:
-            self.param_dfs[param] = pd.read_csv('{path}/{param}.csv'.format(path=self.path,param=param),index_col=0)
+            #self.param_dfs[param] = pd.read_csv('{path}/{param}.csv'.format(path=self.path,param=param),index_col=0)
+            self.param_dfs[param] = pd.read_csv(self.paramToPath[param],index_col=0) 
         return self.param_dfs[param] 
 
     def prep_for_comparisons(self):
-        if not self.params:
-            self.params = [s[:-4] for s in os.listdir(self.path)]
         self.param_dfs = dict()
         self.nodes_with_data = defaultdict(set)
         for param in self.params:

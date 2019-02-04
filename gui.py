@@ -5,6 +5,7 @@ from collections import defaultdict
 import sc_loading
 import sc_plot
 import sc_lib
+import sstl
 
 class Application(tk.Frame):
     def __init__(self, master=None):
@@ -15,31 +16,59 @@ class Application(tk.Frame):
         self.label_options = deepcopy(self.amenity_options)
         self.label_to_nodes = defaultdict(list)
         self.labels = []
-        self.vars = []
+        self.varToPath = dict()
         self.label_to_color = dict()
+        self.sensor_locs_path = ''
         self.available_colors = [(255,0,0),(0,255,0),(0,0,255),(255,255,0),(255,0,255),(0,255,255)]
+        self.reqs = list()
+        self.results = list()
+        self.req_list_widgets = list()
+        self.results_list_widgets = list()
         self.create_widgets()
         
     def create_widgets(self):
         self.create_area_input(0,0)
-        self.create_data_input(0,210)
+        self.create_data_input(0,150)
+        self.create_req_input(0,250)
+        self.create_results_section(0,600)
+
+    def create_results_section(self,xoff,yoff):
+        reqs = tk.Label(self.master,text='Results')
+        reqs.place(x=xoff+10,y=yoff+10)
+        self.results_list_x = xoff+50
+        self.results_list_y = yoff+40
+
+    def create_req_input(self,xoff,yoff):
+        reqs = tk.Label(self.master,text='Requirements')
+        reqs.place(x=xoff+10,y=yoff+10)
+        add_req_formula = tk.Button(self.master,bg='black',command=self.add_req_formula)
+        add_req_formula.place(x=xoff+120,y=yoff+10,width=20,height=20)
+        self.req_list_x = xoff+50
+        self.req_list_y = yoff+150
 
     def create_data_input(self,xoff,yoff):
         data=tk.Label(self.master,text='Data')
         data.place(x=xoff+10,y=yoff+10)
+        sensor_locs = tk.Label(self.master,text='Sensor Locations Path')
+        sensor_locs.place(x=xoff+85,y=yoff+35)
+        self.sensor_entry = tk.Entry(self.master)
+        self.sensor_entry.place(x=xoff+240,y=yoff+35,width=150)
+        set_sensor_locs = tk.Button(self.master, text='Set', fg='white',bg='black',
+                              command=self.set_sensor_locs)
+        set_sensor_locs.place(x=xoff+400,y=yoff+35,height=20)
         var = tk.Label(self.master,text='Variable')
-        var.place(x=xoff+85,y=yoff+35)
+        var.place(x=xoff+85,y=yoff+60)
         self.var_entry = tk.Entry(self.master)
-        self.var_entry.place(x=xoff+150,y=yoff+35,width=75)
+        self.var_entry.place(x=xoff+150,y=yoff+60,width=75)
         path = tk.Label(self.master,text='Path')
-        path.place(x=xoff+250,y=yoff+35)
+        path.place(x=xoff+250,y=yoff+60)
         self.path_entry = tk.Entry(self.master)
-        self.path_entry.place(x=xoff+300,y=yoff+35,width=100)
+        self.path_entry.place(x=xoff+300,y=yoff+60,width=150)
         add_var = tk.Button(self.master, text='+', fg='white',bg='green',
                               command=self.add_var)
-        add_var.place(x=xoff+410,y=yoff+35,width=20,height=20)
-        self.var_list_x = xoff+90
-        self.var_list_y = yoff+55
+        add_var.place(x=xoff+460,y=yoff+60,width=20,height=20)
+        self.var_list_x = xoff+85
+        self.var_list_y = yoff+90
         self.add_var_list()
 
     def create_area_input(self,xoff,yoff):
@@ -135,35 +164,58 @@ class Application(tk.Frame):
         self.refresh_label_menu_and_list()
 
     def show_map(self):
-        city_entered = self.city_entry.get()
-        rang = float(self.range_entry.get())*1000
-        graph = None
-        amenities = [l for l in self.labels if l in self.amenity_options]
-        if len(city_entered):
-            graph = sc_loading.get_graph_city(city_entered.lower(),amenities,rang)
-        else:
-            pass
-        if graph:
-            for label in self.labels:
-                for node in self.label_to_nodes[label]:
-                    graph.add_node(node)
+        graph = self.get_current_graph()
         sc_plot.plot(graph,self.label_to_color)
         self.city_entry.delete(0,'end')
         self.range_entry.delete(0,'end')
         self.coords_entry.delete(0,'end')
 
+    def get_current_graph(self):
+        amenities = [l for l in self.labels if l in self.amenity_options]
+        graph = sc_lib.graph()
+        city_entered = self.city_entry.get()
+        if len(city_entered):
+            graph.city = city_entered
+        center_point = (0,0)
+        if len(self.sensor_locs_path):
+            graph.add_sensor_locs(self.sensor_locs_path)
+            center_point = graph.centroid()
+        else:
+            #TODO: use coords entered as center
+            return
+        rang = 1000
+        entered_rang = self.range_entry.get()
+        if len(entered_rang):
+            rang = float(entered_rang)*1000
+        graph.add_OSMnx_pois(amenities,center_point,rang)
+        if graph:
+            for label in self.labels:
+                for node in self.label_to_nodes[label]:
+                    graph.add_node(node)
+        return graph
+
     def start_action(self):
-        print('start') 
+        graph = self.get_current_graph()
+        #TODO: don't hardcode day
+        checker = sstl.sstl_checker(graph,'2018-09-08',self.varToPath)
+        self.results = list()
+        for req in self.reqs:
+            satisfied = checker.check_spec(req)
+            self.results.append(satisfied)
+        self.refresh_results_list()
 
     def clear_action(self):
+        #TODO
         print('clear')
-    
+   
+    def set_sensor_locs(self):
+        self.sensor_locs_path = self.sensor_entry.get()
+
     def add_var_list(self):
         self.var_list_widgets = []
         cur_x = self.var_list_x
         cur_y = self.var_list_y
-        for i in range(len(self.vars)):
-            v = self.vars[i]
+        for v in self.varToPath:
             action = partial(self.remove_var,v)
             remove = tk.Button(self.master,command=action,bg='white',fg='red',text='x')
             text = tk.Label(self.master,text=v)
@@ -176,15 +228,62 @@ class Application(tk.Frame):
         for w in self.var_list_widgets:
             w.destroy()
         self.add_var_list()
+        #print(self.varToPath)
 
     def remove_var(self,var):
-        self.vars.remove(var)
+        self.varToPath.pop(var,None)
         self.refresh_var_list()
 
     def add_var(self):
-        self.vars.append(self.var_entry.get()) 
+        var = self.var_entry.get()
+        path = self.path_entry.get()
+        self.varToPath[var] = path
         self.var_entry.delete(0,'end')
+        self.path_entry.delete(0,'end')
         self.refresh_var_list()
+
+    def add_req_list(self):
+        self.req_list_widgets = []
+        cur_x = self.req_list_x
+        cur_y = self.req_list_y
+        count=0
+        for req in self.reqs:
+            count+=1
+            action = partial(self.remove_req,req)
+            remove = tk.Button(self.master,command=action,bg='white',fg='red',text='x')
+            req_text = 'R{}: {}'.format(count,req)
+            text = tk.Label(self.master,text=req_text)
+            remove.place(x=cur_x,y=cur_y,height=20,width=20)
+            text.place(x=cur_x+22,y=cur_y)
+            cur_y += 45
+            self.req_list_widgets.extend([remove,text])
+
+    def refresh_req_list(self):
+        for w in self.req_list_widgets:
+            w.destroy()
+        self.add_req_list()
+
+    def remove_req(self,req):
+        self.reqs.remove(req)
+        self.refresh_req_list()
+
+    def add_results_list(self):
+        self.results_list_widgets = []
+        cur_x = self.results_list_x
+        cur_y = self.results_list_y
+        count=0
+        for result in self.results:
+            count+=1
+            result_text = 'R{}: {}'.format(count,result)
+            text = tk.Label(self.master,text=result_text)
+            text.place(x=cur_x,y=cur_y)
+            cur_y += 45
+            self.results_list_widgets.extend([text])
+
+    def refresh_results_list(self):
+        for w in self.results_list_widgets:
+            w.destroy()
+        self.add_results_list()
 
     def add_existing_label(self):
         self.labels.append(self.selected_label)
@@ -200,6 +299,30 @@ class Application(tk.Frame):
         add_loc_root = tk.Tk()
         add_app = AddLocApp(add_loc_root,self)
         add_app.mainloop()
+
+    def add_req_formula(self):
+        add_req_root = tk.Tk()
+        add_app = AddReqApp(add_req_root,self)
+        add_app.mainloop()
+
+class AddReqApp(tk.Frame):
+    def __init__(self,master,parent):
+        super().__init__(master)
+        self.master = master
+        self.master.geometry('500x75+100+100')
+        self.parent = parent
+        self.create_widgets()
+
+    def create_widgets(self):
+        self.req_entry = tk.Entry(self.master)
+        self.req_entry.place(x=20,y=20,width=400)
+        add_button = tk.Button(self.master,command=self.add,bg='green',fg='white',text='+')
+        add_button.place(x=430,y=20,height=20,width=20)
+
+    def add(self):
+        self.parent.reqs.append(self.req_entry.get())
+        self.parent.refresh_req_list()
+        self.req_entry.delete(0,'end')
 
 class AddLocApp(tk.Frame):
     def __init__(self,master,parent):

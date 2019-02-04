@@ -70,14 +70,20 @@ class edge:
         return hash(self.ID) ^ hash(self.coordinates)
     
 class graph:
-    def __init__(self,city):
+    def __init__(self):
         self.nodes_by_ID = dict()
         self.nodes = set()
         self.data_nodes = set()
         self.edges = set()
         self.edge_dict = dict()
-        self.city = city
         self.test = 1
+
+    def add_sensor_locs(self,sensor_path):
+        sensor_df = pd.read_csv(sensor_path)
+        for index, row in sensor_df.iterrows():
+            p = (row['lat'],row['lon'])
+            new_node = node(row['node_id'],p)
+            self.add_node(new_node)
 
     def add_edge(self,edge):
         if edge not in self.edges:
