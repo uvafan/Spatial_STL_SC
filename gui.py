@@ -156,24 +156,24 @@ class Application(tk.Frame):
         data=tk.Label(self.master,text='Data')
         data.place(x=xoff+10,y=yoff+10)
         sensor_locs = tk.Label(self.master,text='Sensor Locations Path')
-        sensor_locs.place(x=xoff+85,y=yoff+35)
+        sensor_locs.place(x=xoff+50,y=yoff+35)
         self.sensor_entry = tk.Entry(self.master)
-        self.sensor_entry.place(x=xoff+240,y=yoff+35,width=150)
+        self.sensor_entry.place(x=xoff+205,y=yoff+35,width=150)
         set_sensor_locs = tk.Button(self.master, text='Set', fg='white',bg='black',
                               command=self.set_sensor_locs)
-        set_sensor_locs.place(x=xoff+400,y=yoff+35,height=20)
+        set_sensor_locs.place(x=xoff+365,y=yoff+35,height=20)
         var = tk.Label(self.master,text='Variable')
-        var.place(x=xoff+85,y=yoff+60)
+        var.place(x=xoff+50,y=yoff+60)
         self.var_entry = tk.Entry(self.master)
-        self.var_entry.place(x=xoff+150,y=yoff+60,width=75)
+        self.var_entry.place(x=xoff+115,y=yoff+60,width=75)
         path = tk.Label(self.master,text='Path')
-        path.place(x=xoff+250,y=yoff+60)
+        path.place(x=xoff+215,y=yoff+60)
         self.path_entry = tk.Entry(self.master)
-        self.path_entry.place(x=xoff+300,y=yoff+60,width=150)
+        self.path_entry.place(x=xoff+265,y=yoff+60,width=150)
         add_var = tk.Button(self.master, text='+', fg='white',bg='green',
                               command=self.add_var)
-        add_var.place(x=xoff+460,y=yoff+60,width=20,height=20)
-        self.var_list_x = xoff+85
+        add_var.place(x=xoff+435,y=yoff+60,width=20,height=20)
+        self.var_list_x = xoff+50
         self.var_list_y = yoff+90
         self.add_var_list()
 
