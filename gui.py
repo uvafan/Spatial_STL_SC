@@ -1,5 +1,5 @@
 import tkinter as tk
-from functools import partial
+from functools import partial 
 from copy import deepcopy 
 from collections import defaultdict
 import sc_loading
@@ -87,7 +87,7 @@ class Application(tk.Frame):
         self.tem_input = tk.StringVar(self.master)
         self.tem_input.set('always')
         self.selected_tem = 'always'
-        self.tem_options = ['always','sometimes','never']
+        self.tem_options = ['always','eventually']
         self.tem_menu = tk.OptionMenu(self.master,self.tem_input,*tuple(self.tem_options),command=self.update_selected_tem)
         self.tem_menu.place(x=xoff+0,y=yoff+70,width=110)
         be = tk.Label(self.master,text='be')
@@ -106,8 +106,17 @@ class Application(tk.Frame):
         self.req_fro_entry.place(x=xoff+350,y=yoff+75,width=38)
         to = tk.Label(self.master,text='to min')
         to.place(x=xoff+395,y=yoff+75)
-        self.req_fro_entry = tk.Entry(self.master)
-        self.req_fro_entry.place(x=xoff+445,y=yoff+75,width=38)
+        self.req_to_entry = tk.Entry(self.master)
+        self.req_to_entry.place(x=xoff+445,y=yoff+75,width=38)
+        add_req = tk.Button(self.master, text='+', fg='white',bg='green',
+                              command=self.add_req)
+        add_req.place(x=xoff+600,y=yoff+75,height=20,width=20)
+
+    def add_req(self):
+        req = sc_lib.requirement()
+        req.construct_req_str(self.selected_agg,self.selected_var,self.req_range_entry.get(),self.selected_spatial,self.selected_lab,self.selected_tem,self.selected_rel,self.req_val_entry.get(),self.req_fro_entry.get(),self.req_to_entry.get())
+        self.reqs.append(req)
+        self.refresh_req_list()
 
     def update_selected_rel(self,value):
         self.selected_rel = value
@@ -300,7 +309,7 @@ class Application(tk.Frame):
         checker = sstl.sstl_checker(graph,'2018-09-08',self.varToPath)
         self.results = list()
         for req in self.reqs:
-            satisfied = checker.check_spec(req)
+            satisfied = checker.check_spec(req.req_str)
             self.results.append(satisfied)
         self.refresh_results_list()
 
@@ -352,11 +361,11 @@ class Application(tk.Frame):
             count+=1
             action = partial(self.remove_req,req)
             remove = tk.Button(self.master,command=action,bg='white',fg='red',text='x')
-            req_text = 'R{}: {}'.format(count,req)
+            req_text = 'R{}: {}'.format(count,req.req_str)
             text = tk.Label(self.master,text=req_text)
             remove.place(x=cur_x,y=cur_y,height=20,width=20)
             text.place(x=cur_x+22,y=cur_y)
-            cur_y += 45
+            cur_y += 20
             self.req_list_widgets.extend([remove,text])
 
     def refresh_req_list(self):
@@ -378,7 +387,7 @@ class Application(tk.Frame):
             result_text = 'R{}: {}'.format(count,result)
             text = tk.Label(self.master,text=result_text)
             text.place(x=cur_x,y=cur_y)
-            cur_y += 45
+            cur_y += 20
             self.results_list_widgets.extend([text])
 
     def refresh_results_list(self):
@@ -421,7 +430,9 @@ class AddReqApp(tk.Frame):
         add_button.place(x=430,y=20,height=20,width=20)
 
     def add(self):
-        self.parent.reqs.append(self.req_entry.get())
+        req = sc_lib.requirement()
+        req.set_req_str(self.req_entry.get())
+        self.parent.reqs.append(req)
         self.parent.refresh_req_list()
         self.req_entry.delete(0,'end')
 

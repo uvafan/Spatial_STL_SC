@@ -209,3 +209,34 @@ class graph:
             lat_sum += node.coordinates[0]
             lon_sum += node.coordinates[1]
         return (lat_sum/len(self.nodes),lon_sum/len(self.nodes))
+
+class requirement():
+    def __init__(self):
+        self.req_str = ''
+
+    def set_req_str(self,s):
+        self.req_str = s
+
+    def construct_req_str(self,agg,param,rang,spatial,label,temporal,rel,val,fro,to):
+        self.req_str = ''
+        if spatial == 'all/everywhere':
+            self.req_str += 'W'
+        else:
+            self.req_str += 'S'
+        if len(label):
+            self.req_str += '{'+label[:-1]+'}'
+        self.req_str += '('
+        if temporal == 'always':
+            self.req_str += 'A'
+        else:
+            self.req_str += 'E'
+        self.req_str += '[{},{}]'.format(fro,to)
+        if len(agg):
+            self.req_str += '(<{}[{},{}],{}>'.format(agg,0,rang,param)
+        else:
+            self.req_str += '(<{}>'.format(param)
+        if rel == 'above':
+            self.req_str += '({},inf)))'.format(val)
+        elif rel == 'below':
+            self.req_str += '(-inf,{})))'.format(val)
+
