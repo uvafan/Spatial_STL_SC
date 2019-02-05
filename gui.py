@@ -28,8 +28,8 @@ class Application(tk.Frame):
         
     def create_widgets(self):
         self.create_area_input(0,0)
-        self.create_data_input(0,150)
-        self.create_req_input(0,250)
+        self.create_data_input(0,180)
+        self.create_req_input(0,280)
         self.create_results_section(0,600)
 
     def create_results_section(self,xoff,yoff):
@@ -43,8 +43,105 @@ class Application(tk.Frame):
         reqs.place(x=xoff+10,y=yoff+10)
         add_req_formula = tk.Button(self.master,bg='black',command=self.add_req_formula)
         add_req_formula.place(x=xoff+120,y=yoff+10,width=20,height=20)
+        self.create_req_dropdown_input(xoff+50,yoff+30)
         self.req_list_x = xoff+50
         self.req_list_y = yoff+150
+
+    def create_req_dropdown_input(self,xoff,yoff):
+        the = tk.Label(self.master,text='The')
+        the.place(x=xoff,y=yoff+5)
+        self.agg_input = tk.StringVar(self.master)
+        self.agg_input.set('')
+        self.selected_agg = ''
+        self.agg_options = ['','avg','min','max']
+        self.agg_menu = tk.OptionMenu(self.master,self.agg_input,*tuple(self.agg_options),command=self.update_selected_agg)
+        self.agg_menu.place(x=xoff+35,y=yoff,width=75)
+        self.var_input = tk.StringVar(self.master)
+        self.var_input.set('')
+        self.selected_var = ''
+        self.var_options = ['']
+        self.var_menu_loc = [xoff+125,yoff]
+        self.var_menu = tk.OptionMenu(self.master,self.var_input,*tuple(self.var_options),command=self.update_selected_var)
+        self.var_menu.place(x=self.var_menu_loc[0],y=self.var_menu_loc[1],width=200)
+        within = tk.Label(self.master,text='within')
+        within.place(x=xoff,y=yoff+40)
+        self.req_range_entry = tk.Entry(self.master)
+        self.req_range_entry.place(x=xoff+50,y=yoff+40,width=30)
+        km_of = tk.Label(self.master,text='km of')
+        km_of.place(x=xoff+90,y=yoff+40)
+        self.spatial_input = tk.StringVar(self.master)
+        self.spatial_input.set('all/everywhere')
+        self.selected_spatial = 'all/everywhere'
+        self.spatial_options = ['all/everywhere','some/somewhere']
+        self.spatial_menu = tk.OptionMenu(self.master,self.spatial_input,*tuple(self.spatial_options),command=self.update_selected_spatial)
+        self.spatial_menu.place(x=xoff+140,y=yoff+35,width=150)
+        self.lab_input = tk.StringVar(self.master)
+        self.lab_input.set('')
+        self.selected_lab = ''
+        self.lab_options = ['']
+        self.lab_menu_loc = [xoff+300,yoff+35]
+        self.lab_menu = tk.OptionMenu(self.master,self.lab_input,*tuple(self.lab_options),command=self.update_selected_lab)
+        self.lab_menu.place(x=self.lab_menu_loc[0],y=self.lab_menu_loc[1],width=200)
+        should = tk.Label(self.master,text='should')
+        should.place(x=xoff+510,y=yoff+40)
+        self.tem_input = tk.StringVar(self.master)
+        self.tem_input.set('always')
+        self.selected_tem = 'always'
+        self.tem_options = ['always','sometimes','never']
+        self.tem_menu = tk.OptionMenu(self.master,self.tem_input,*tuple(self.tem_options),command=self.update_selected_tem)
+        self.tem_menu.place(x=xoff+0,y=yoff+70,width=110)
+        be = tk.Label(self.master,text='be')
+        be.place(x=xoff+115,y=yoff+75)
+        self.rel_input = tk.StringVar(self.master)
+        self.rel_input.set('above')
+        self.selected_rel = 'above'
+        self.rel_options = ['above','below']
+        self.rel_menu = tk.OptionMenu(self.master,self.rel_input,*tuple(self.rel_options),command=self.update_selected_rel)
+        self.rel_menu.place(x=xoff+140,y=yoff+70,width=80)
+        self.req_val_entry = tk.Entry(self.master)
+        self.req_val_entry.place(x=xoff+225,y=yoff+75,width=50)
+        fro = tk.Label(self.master,text='from min')
+        fro.place(x=xoff+280,y=yoff+75)
+        self.req_fro_entry = tk.Entry(self.master)
+        self.req_fro_entry.place(x=xoff+350,y=yoff+75,width=38)
+        to = tk.Label(self.master,text='to min')
+        to.place(x=xoff+395,y=yoff+75)
+        self.req_fro_entry = tk.Entry(self.master)
+        self.req_fro_entry.place(x=xoff+445,y=yoff+75,width=38)
+
+    def update_selected_rel(self,value):
+        self.selected_rel = value
+
+    def update_selected_tem(self,value):
+        self.selected_tem = value
+       
+    def update_selected_spatial(self,value):
+        self.selected_spatial = value
+       
+    def update_selected_agg(self,value):
+        self.selected_agg = value
+
+    def update_selected_var(self,value):
+        self.selected_var = value
+
+    def update_selected_lab(self,value):
+        self.selected_lab = value
+
+    def refresh_var_dropdown(self):
+        self.var_menu.destroy()
+        options = self.varToPath.keys()
+        if not len(options):
+            options = ['']
+        self.var_menu = tk.OptionMenu(self.master,self.var_input,*tuple(options),command=self.update_selected_var)
+        self.var_menu.place(x=self.var_menu_loc[0],y=self.var_menu_loc[1],width=200)
+
+    def refresh_lab_dropdown(self):
+        self.lab_menu.destroy()
+        options = [l+'s' for l in self.labels]
+        if not len(options):
+            options = ['']
+        self.lab_menu = tk.OptionMenu(self.master,self.lab_input,*tuple(options),command=self.update_selected_lab)
+        self.lab_menu.place(x=self.lab_menu_loc[0],y=self.lab_menu_loc[1],width=200)
 
     def create_data_input(self,xoff,yoff):
         data=tk.Label(self.master,text='Data')
@@ -100,7 +197,7 @@ class Application(tk.Frame):
         km.place(x=xoff+380,y=yoff+65)
         show_map = tk.Button(self.master, text='Show Map', fg='black',bg='white',
                               command=self.show_map)
-        show_map.place(x=xoff+410,y=yoff+60)
+        show_map.place(x=xoff+610,y=yoff+150)
         labels = tk.Label(self.master,text='Point Of Interests Label')
         labels.place(x=xoff+50,y=yoff+120)
         self.menu_x=xoff+210
@@ -120,10 +217,12 @@ class Application(tk.Frame):
         if len(self.label_options):
             self.label_menu_input.set(self.label_options[0])
             self.selected_label = self.label_options[0]
+            options = self.label_options
         else:
             self.label_menu_input.set('')
             self.selected_label = ''
-        self.label_menu = tk.OptionMenu(self.master,self.label_menu_input,*tuple(self.label_options),command=self.update_selected_label)
+            options = ['']
+        self.label_menu = tk.OptionMenu(self.master,self.label_menu_input,*tuple(options),command=self.update_selected_label)
         self.label_menu.place(x=self.menu_x,y=self.menu_y,width=105)
         self.label_list_widgets = []
         cur_x = self.label_list_x
@@ -155,6 +254,7 @@ class Application(tk.Frame):
         for w in self.label_list_widgets:
             w.destroy()
         self.add_label_menu_and_list()
+        self.refresh_lab_dropdown()
 
     def remove_label(self,label):
         self.labels.remove(label)
@@ -228,6 +328,7 @@ class Application(tk.Frame):
         for w in self.var_list_widgets:
             w.destroy()
         self.add_var_list()
+        self.refresh_var_dropdown()
         #print(self.varToPath)
 
     def remove_var(self,var):
