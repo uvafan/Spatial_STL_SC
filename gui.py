@@ -276,24 +276,31 @@ class Application(tk.Frame):
 
     def show_map(self):
         graph = self.get_current_graph()
+        if not graph:
+            return
         sc_plot.plot(graph,self.label_to_color)
+        '''
         self.city_entry.delete(0,'end')
         self.range_entry.delete(0,'end')
         self.coords_entry.delete(0,'end')
+        '''
 
     def get_current_graph(self):
         amenities = [l for l in self.labels if l in self.amenity_options]
         graph = sc_lib.graph()
         city_entered = self.city_entry.get()
+        coords_entered = self.coords_entry.get()
         if len(city_entered):
             graph.city = city_entered
         center_point = (0,0)
+        if len(coords_entered):
+            center_point = tuple([float(s) for s in coords_entered.split(',')])
+            #TODO: allow city entry
+        else:
+            print('must enter city name or coordinates')
+            return None
         if len(self.sensor_locs_path):
             graph.add_sensor_locs(self.sensor_locs_path)
-            center_point = graph.centroid()
-        else:
-            #TODO: use coords entered as center
-            return
         rang = 1000
         entered_rang = self.range_entry.get()
         if len(entered_rang):
@@ -307,6 +314,8 @@ class Application(tk.Frame):
 
     def start_action(self):
         graph = self.get_current_graph()
+        if not graph:
+            return
         checker = sstl.sstl_checker(graph,self.varToPath,debug=DEBUG)
         self.results = list()
         for req in self.reqs:
