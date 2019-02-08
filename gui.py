@@ -8,6 +8,7 @@ import sc_lib
 import sstl
 
 DEBUG = True
+PARALLEL = True
 
 class Application(tk.Frame):
     def __init__(self, master=None):
@@ -116,7 +117,7 @@ class Application(tk.Frame):
 
     def add_req(self):
         req = sc_lib.requirement()
-        req.construct_req_str(self.selected_agg,self.selected_var,self.req_range_entry.get(),self.selected_spatial,self.selected_lab,self.selected_tem,self.selected_rel,self.req_val_entry.get(),self.req_fro_entry.get(),self.req_to_entry.get())
+        req.construct_req_str(self.selected_agg,self.selected_var,self.req_range_entry.get().strip(),self.selected_spatial,self.selected_lab,self.selected_tem,self.selected_rel,self.req_val_entry.get().strip(),self.req_fro_entry.get().strip(),self.req_to_entry.get().strip())
         self.reqs.append(req)
         self.refresh_req_list()
 
@@ -288,8 +289,8 @@ class Application(tk.Frame):
     def get_current_graph(self):
         amenities = [l for l in self.labels if l in self.amenity_options]
         graph = sc_lib.graph()
-        city_entered = self.city_entry.get()
-        coords_entered = self.coords_entry.get()
+        city_entered = self.city_entry.get().strip()
+        coords_entered = self.coords_entry.get().strip()
         if len(city_entered):
             graph.city = city_entered
         center_point = (0,0)
@@ -302,7 +303,7 @@ class Application(tk.Frame):
         if len(self.sensor_locs_path):
             graph.add_sensor_locs(self.sensor_locs_path)
         rang = 1000
-        entered_rang = self.range_entry.get()
+        entered_rang = self.range_entry.get().strip()
         if len(entered_rang):
             rang = float(entered_rang)*1000
         graph.add_OSMnx_pois(amenities,center_point,rang)
@@ -316,11 +317,13 @@ class Application(tk.Frame):
         graph = self.get_current_graph()
         if not graph:
             return
-        checker = sstl.sstl_checker(graph,self.varToPath,debug=DEBUG)
+        checker = sstl.sstl_checker(graph,self.varToPath,debug=DEBUG,parallel=PARALLEL)
         self.results = list()
         for req in self.reqs:
-            satisfied = checker.check_spec(req.req_str)
-            self.results.append(satisfied)
+            robustness = checker.check_spec(req.req_str)
+            result_str = 'True' if robustness>0 else 'False'
+            result_str += ',Robustness = {}'.format(robustness)
+            self.results.append(result_str)
         self.refresh_results_list()
 
     def clear_action(self):
@@ -328,7 +331,7 @@ class Application(tk.Frame):
         print('clear')
    
     def set_sensor_locs(self):
-        self.sensor_locs_path = self.sensor_entry.get()
+        self.sensor_locs_path = self.sensor_entry.get().strip()
 
     def add_var_list(self):
         self.var_list_widgets = []
@@ -355,8 +358,8 @@ class Application(tk.Frame):
         self.refresh_var_list()
 
     def add_var(self):
-        var = self.var_entry.get()
-        path = self.path_entry.get()
+        var = self.var_entry.get().strip()
+        path = self.path_entry.get().strip()
         self.varToPath[var] = path
         self.var_entry.delete(0,'end')
         self.path_entry.delete(0,'end')
@@ -441,7 +444,7 @@ class AddReqApp(tk.Frame):
 
     def add(self):
         req = sc_lib.requirement()
-        req.set_req_str(self.req_entry.get())
+        req.set_req_str(self.req_entry.get().strip())
         self.parent.reqs.append(req)
         self.parent.refresh_req_list()
         self.req_entry.delete(0,'end')
@@ -469,8 +472,8 @@ class AddLocApp(tk.Frame):
         add_button.place(x=460,y=35)
 
     def add(self):
-        name = self.name_entry.get()
-        coords = tuple([float(a) for a in self.gps_entry.get().split(',')])
+        name = self.name_entry.get().strip()
+        coords = tuple([float(a) for a in self.gps_entry.get().strip().split(',')])
         self.parent.labels.append(name)
         new_node = sc_lib.node(name,coords)
         new_node.data_node=False
@@ -513,15 +516,15 @@ class AddLabelApp(tk.Frame):
         add_button.place(x=350,y=70)
     
     def add_to_map(self):
-        new_label = self.create_entry.get()
+        new_label = self.create_entry.get().strip()
         if len(new_label):
             self.parent.labels.append(new_label)
             self.parent.refresh_label_menu_and_list()
             self.create_entry.delete(0,'end')
         else:
-            label = self.label_entry.get()
-            name = self.name_entry.get()
-            coords = tuple([float(a) for a in self.gps_entry.get().split(',')])
+            label = self.label_entry.get().strip()
+            name = self.name_entry.get().strip()
+            coords = tuple([float(a) for a in self.gps_entry.get().strip().split(',')])
             new_node = sc_lib.node(name,coords)
             new_node.data_node=False
             new_node.add_tag(label)

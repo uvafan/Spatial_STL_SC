@@ -25,7 +25,7 @@ class sstl_checker:
         self.parallel = parallel
         self.workers = cpu_count()
         self.paramToPath = paramToPath
-        self.params = paramToPath.keys()
+        self.params = list(paramToPath.keys())
         self.prep_for_comparisons()
         self.checks=0
 
@@ -48,7 +48,6 @@ class sstl_checker:
             df = self.get_df(param)
             tm = pd.to_datetime(df.index[0])
             self.day = str(tm-datetime.timedelta(hours=tm.hour,minutes=tm.minute,seconds=tm.second))[:10]
-            print(self.day)
             for node in self.graph.nodes:
                 if node.ID in df.columns:
                     self.nodes_with_data[param].add(node)
@@ -109,6 +108,9 @@ class sstl_checker:
     def in_range(self,val,val_range):
         return val >= val_range[0] and val <= val_range[1]
 
+    def rob_from_range(self,val,val_range):
+        return min(val-val_range[0],val_range[1]-val)
+
     def dist_btwn(self,coordsA,coordsB):
         #distance.distance is more accurate but slower
         return distance.vincenty(coordsA,coordsB).km
@@ -159,13 +161,13 @@ class sstl_checker:
         po = not agg
         assert(len(if_specs)<3)
         if len(if_specs) > 1:
-            return (not self.check_spec(if_specs[0],time=time,node_ID=node_ID,parse_ops=po,parallelized=parallelized)) or self.check_spec(if_specs[1],time=time,node_ID=node_ID,parse_ops=po,parallelized=parallelized)
+            return max((-self.check_spec(if_specs[0],time=time,node_ID=node_ID,parse_ops=po,parallelized=parallelized)),self.check_spec(if_specs[1],time=time,node_ID=node_ID,parse_ops=po,parallelized=parallelized))
         or_specs = spec_str.split(or_str)
         if len(or_specs) > 1:
-            return self.check_spec(or_specs[0],time=time,node_ID=node_ID,parse_ops=po,parallelized=parallelized) or self.check_spec(or_specs[1],time=time,node_ID=node_ID,parse_ops=po,parallelized=parallelized)
+            return max(self.check_spec(or_specs[0],time=time,node_ID=node_ID,parse_ops=po,parallelized=parallelized),self.check_spec(or_specs[1],time=time,node_ID=node_ID,parse_ops=po,parallelized=parallelized))
         and_specs = spec_str.split(and_str)
         if len(and_specs) > 1:
-            return self.check_spec(and_specs[0],time=time,node_ID=node_ID,parse_ops=po,parallelized=parallelized) and self.check_spec(and_specs[1],time=time,node_ID=node_ID,parse_ops=po,parallelized=parallelized)
+            return min(self.check_spec(and_specs[0],time=time,node_ID=node_ID,parse_ops=po,parallelized=parallelized),self.check_spec(and_specs[1],time=time,node_ID=node_ID,parse_ops=po,parallelized=parallelized))
         return self.check_spec(spec_str,parse_ops=False,do_check=True,time=time,node_ID=node_ID,parallelized=parallelized)
    
     def get_nodes_lookahead(self,spec_str):
@@ -181,7 +183,7 @@ class sstl_checker:
         if parse_ops and spec_str[0]!='<':
             return self.parse_logical_operands(spec_str,parallelized=parallelized)
         if spec_str[0] == '!':
-            return not self.check_spec(spec_str[1:],node_ID=node_ID,time=time,parse_ops=False,parallelized=parallelized)
+            return -self.check_spec(spec_str[1:],node_ID=node_ID,time=time,parse_ops=False,parallelized=parallelized)
         #Always
         if spec_str[0] == 'A':
             perf = performance.performance_tester()
@@ -189,13 +191,11 @@ class sstl_checker:
             datetime_rng = self.get_datetime_range(time,time_range)
             if not node_ID and next_spec_str[0] in ['E','W','<']:
                 nodes = self.get_nodes_lookahead(next_spec_str)
-            ret = -1
+            ret = float('inf')
             for t in datetime_rng:
                 result = self.check_spec(next_spec_str,node_ID=node_ID,nodes=nodes,time=t,parse_ops=False,parallelized=parallelized)
-                if result != -1 and not result:
-                    return False
-                elif result != -1:
-                    ret = True
+                if result:
+                    ret = min(ret,result)
             return ret
         #Eventually
         elif spec_str[0] == 'E':
@@ -203,11 +203,12 @@ class sstl_checker:
             datetime_rng = self.get_datetime_range(time,time_range)
             if not node_ID and next_spec_str[0] in ['E','W','<']:
                 nodes = self.get_nodes_lookahead(next_spec_str)
+            ret = float('-inf')
             for t in datetime_rng:
                 result = self.check_spec(next_spec_str,node_ID=node_ID,nodes=nodes,time=t,parse_ops=False,parallelized=parallelized)
-                if result != -1 and result:
-                    return True
-            return False
+                if result:
+                    ret = max(ret,result)
+            return ret
         #Everywhere
         elif spec_str[0] == 'W' or spec_str[0] == 'C' or spec_str[0] == 'P':
             pct_required = 0
@@ -220,21 +221,17 @@ class sstl_checker:
             if not nodes:
                 nodes = self.get_nodes(node_ID,dist_range,last_spatial,param,tags=tags)
             nodes_checked=0
-            ret = -1
+            ret = float('inf')
             if self.parallel and not parallelized:
                 pool = Pool(processes=self.workers)
                 for n,result in zip(nodes, pool.starmap(self.check_spec,product([next_spec_str],nodes,[time],[True],[False]))):
-                    if result != -1:
+                    if result:
                         nodes_checked+=1
-                    if result != -1 and not result:
+                    if result and result < 0:
                         if spec_str[0]!='W':
                             violations+=1
-                        else:
-                            pool.close()
-                            pool.join()
-                            return False
-                    elif result != -1:
-                        ret = True
+                    if result:
+                        ret = min(ret,result)
                 pool.close()
                 pool.join()
                 if spec_str[0]=='W':
@@ -246,15 +243,13 @@ class sstl_checker:
             for n in nodes:
                 #self.log('here')
                 result = self.check_spec(next_spec_str,node_ID=n,time=time,parse_ops=False,parallelized=parallelized)
-                if result != -1:
+                if result:
                     nodes_checked+=1
-                if result != -1 and not result:
+                if result and result<0:
                     if spec_str[0]!='W':
                         violations+=1
-                    else:
-                        return False
-                elif result != -1:
-                    ret = True
+                elif result:
+                    ret = min(ret,result)
             if spec_str[0]=='W':
                 return ret
             elif spec_str[0]=='C':
@@ -265,23 +260,22 @@ class sstl_checker:
         elif spec_str[0] == 'S':
             dist_range,tags,next_spec_str = self.parse_spec_str(spec_str)
             last_spatial, param = self.look_ahead(spec_str)
+            ret = float('-inf')
             if not nodes:
                 nodes = self.get_nodes(node_ID,dist_range,last_spatial,param,tags=tags)
             if self.parallel and not parallelized:
                 pool = Pool(processes=self.workers)
                 for n,result in zip(nodes, pool.starmap(self.check_spec,product([next_spec_str],nodes,[time],[True],[False]))):
-                    if result != -1 and result:
-                        pool.close()
-                        pool.join()
-                        return True
+                    if result:
+                        ret = max(ret,result)
                 pool.close()
                 pool.join()
-                return False
+                return ret
             for n in nodes:
                 result = self.check_spec(next_spec_str,node_ID=n,time=time,parse_ops=False,parallelized=parallelized)
-                if result != -1 and result:
-                    return True
-            return False
+                if result:
+                    ret = max(ret,result)
+            return ret
         #Aggregation   
         elif spec_str[0] == '<':
             if not node_ID:
@@ -325,7 +319,7 @@ class sstl_checker:
     def check_aggregation(self,aggregation_op,param,dist_range,node_ID,time,val_range):
         check_nodes = self.get_nodes(node_ID,dist_range,True,param)
         if not len(check_nodes):
-            return -1
+            return None
         df = self.get_df(param)
         vals = []
         for check_node in check_nodes:
@@ -334,7 +328,7 @@ class sstl_checker:
                 continue
             vals.append(val)
         if not len(vals):
-            return -1
+            return None
         #self.log('aggregating data from {} nodes'.format(len(vals)))
         val = 0
         if aggregation_op == 'min':
@@ -345,8 +339,8 @@ class sstl_checker:
             val = sum(vals)/len(vals)
         else:
             print('unrecognized aggregation operator: {}'.format(aggregation_op))
-            return False
-        return self.in_range(val,val_range) 
+            return None
+        return self.rob_from_range(val,val_range) 
     
     def check_value(self,node_ID,time,aggregation_op,dist_range,param,val_range): 
         if aggregation_op:
@@ -354,7 +348,7 @@ class sstl_checker:
         df = self.get_df(param)
         val = df.at[str(time),node_ID]
         if np.isnan(val):
-            return -1
-        return self.in_range(val,val_range)
+            return None
+        return self.rob_from_range(val,val_range)
 
 
