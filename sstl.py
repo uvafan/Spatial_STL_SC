@@ -17,11 +17,9 @@ from geopy import distance
 from collections import defaultdict
 
 class sstl_checker:
-    def __init__(self, G, day, paramToPath, parallel=False, cache_locs=True, debug=False):
+    def __init__(self, G, paramToPath, parallel=False, cache_locs=True, debug=False):
         self.graph = G
         self.loc = tuple()
-        self.day = day
-        #self.path = '/media/sf_D_DRIVE/{c}_data/{d}'.format(c=self.graph.city,d=day)
         self.cache_locs = cache_locs
         self.debug = debug
         self.parallel = parallel
@@ -40,7 +38,6 @@ class sstl_checker:
 
     def get_df(self,param):
         if param not in self.param_dfs:
-            #self.param_dfs[param] = pd.read_csv('{path}/{param}.csv'.format(path=self.path,param=param),index_col=0)
             self.param_dfs[param] = pd.read_csv(self.paramToPath[param],index_col=0) 
         return self.param_dfs[param] 
 
@@ -49,6 +46,9 @@ class sstl_checker:
         self.nodes_with_data = defaultdict(set)
         for param in self.params:
             df = self.get_df(param)
+            tm = pd.to_datetime(df.index[0])
+            self.day = str(tm-datetime.timedelta(hours=tm.hour,minutes=tm.minute,seconds=tm.second))[:10]
+            print(self.day)
             for node in self.graph.nodes:
                 if node.ID in df.columns:
                     self.nodes_with_data[param].add(node)
@@ -243,8 +243,8 @@ class sstl_checker:
                     return violations
                 else:
                     return True if nodes_checked == 0 else (((1-violations/nodes_checked)*100)>pct_required) 
-            ret = -1
             for n in nodes:
+                #self.log('here')
                 result = self.check_spec(next_spec_str,node_ID=n,time=time,parse_ops=False,parallelized=parallelized)
                 if result != -1:
                     nodes_checked+=1

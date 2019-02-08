@@ -7,6 +7,8 @@ import sc_plot
 import sc_lib
 import sstl
 
+DEBUG = True
+
 class Application(tk.Frame):
     def __init__(self, master=None):
         super().__init__(master)
@@ -305,8 +307,7 @@ class Application(tk.Frame):
 
     def start_action(self):
         graph = self.get_current_graph()
-        #TODO: don't hardcode day
-        checker = sstl.sstl_checker(graph,'2018-09-08',self.varToPath)
+        checker = sstl.sstl_checker(graph,self.varToPath,debug=DEBUG)
         self.results = list()
         for req in self.reqs:
             satisfied = checker.check_spec(req.req_str)
