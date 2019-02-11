@@ -213,30 +213,46 @@ class graph:
 class requirement():
     def __init__(self):
         self.req_str = ''
+        self.pretty_str = ''
 
     def set_req_str(self,s):
         self.req_str = s
 
+    def set_pretty_str(self,s):
+        self.pretty_str = s
+
     def construct_req_str(self,agg,param,rang,spatial,label,temporal,rel,val,fro,to):
         self.req_str = ''
-        if spatial == 'all/everywhere':
+        if spatial == '<all/everywhere>':
             self.req_str += 'W'
         else:
             self.req_str += 'S'
         if len(label):
-            self.req_str += '{'+label[:-1]+'}'
+            self.req_str += '{'+label[1:-2]+'}'
         self.req_str += '('
-        if temporal == 'always':
+        if temporal == '<always>':
             self.req_str += 'A'
         else:
             self.req_str += 'E'
         self.req_str += '[{},{}]'.format(fro,to)
         if len(agg):
-            self.req_str += '(<{}[{},{}],{}>'.format(agg,0,rang,param)
-        else:
-            self.req_str += '(<{}>'.format(param)
-        if rel == 'above':
+            agg = agg[1:-1]
+            self.req_str += '(<{}[{},{}],{}>'.format(agg,0,rang,param[1:-1])
+        else: 
+            self.req_str += '(<{}>'.format(param[1:-1]) 
+        if rel == '<above>': 
             self.req_str += '({},inf)))'.format(val)
-        elif rel == 'below':
+        elif rel == '<below>':
             self.req_str += '(-inf,{})))'.format(val)
+        self.pretty_str = 'The '
+        if len(agg):
+            self.pretty_str += agg+' '
+        self.pretty_str += param+' '
+        my_spatial = spatial.split('/')[0]+'>' if len(label) else '<'+spatial.split('/')[1]
+        if len(label):
+            self.pretty_str += 'within {} km of {} {} '.format(rang,my_spatial,label)
+        else:
+            self.pretty_str += my_spatial+' '
+        self.pretty_str += 'should {} be {} {} from minute {} to minute {}'.format(temporal,rel,val,fro,to)
+
 

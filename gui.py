@@ -15,15 +15,15 @@ class Application(tk.Frame):
     def __init__(self, master=None):
         super().__init__(master)
         self.master = master
-        self.master.geometry('800x1000+1100+20')
-        self.amenity_options = ['school','theatre','hospital']
+        self.master.geometry('1000x1000+700+20')
+        self.amenity_options = ['school','theatre','hospital','restaurant','library','university','parking','bank','cinema','fire_station','prison']
+        self.available_colors = [(255,0,0),(0,255,0),(0,0,255),(255,255,0),(255,0,255),(0,255,255),(127,127,127),(127,127,0),(127,0,127),(0,127,127),(255,127,127)]
         self.label_options = deepcopy(self.amenity_options)
         self.label_to_nodes = defaultdict(list)
         self.labels = []
         self.varToPath = dict()
         self.label_to_color = dict()
         self.sensor_locs_path = ''
-        self.available_colors = [(255,0,0),(0,255,0),(0,0,255),(255,255,0),(255,0,255),(0,255,255)]
         self.reqs = list()
         self.results = list()
         self.req_list_widgets = list()
@@ -57,7 +57,7 @@ class Application(tk.Frame):
         self.agg_input = tk.StringVar(self.master)
         self.agg_input.set('')
         self.selected_agg = ''
-        self.agg_options = ['','avg','min','max']
+        self.agg_options = ['','<avg>','<min>','<max>']
         self.agg_menu = tk.OptionMenu(self.master,self.agg_input,*tuple(self.agg_options),command=self.update_selected_agg)
         self.agg_menu.place(x=xoff+35,y=yoff,width=75)
         self.var_input = tk.StringVar(self.master)
@@ -74,9 +74,9 @@ class Application(tk.Frame):
         km_of = tk.Label(self.master,text='km of')
         km_of.place(x=xoff+90,y=yoff+40)
         self.spatial_input = tk.StringVar(self.master)
-        self.spatial_input.set('all/everywhere')
-        self.selected_spatial = 'all/everywhere'
-        self.spatial_options = ['all/everywhere','some/somewhere']
+        self.spatial_input.set('<all/everywhere>')
+        self.selected_spatial = '<all/everywhere>'
+        self.spatial_options = ['<all/everywhere>','<some/somewhere>']
         self.spatial_menu = tk.OptionMenu(self.master,self.spatial_input,*tuple(self.spatial_options),command=self.update_selected_spatial)
         self.spatial_menu.place(x=xoff+140,y=yoff+35,width=150)
         self.lab_input = tk.StringVar(self.master)
@@ -89,29 +89,29 @@ class Application(tk.Frame):
         should = tk.Label(self.master,text='should')
         should.place(x=xoff+510,y=yoff+40)
         self.tem_input = tk.StringVar(self.master)
-        self.tem_input.set('always')
-        self.selected_tem = 'always'
-        self.tem_options = ['always','eventually']
+        self.tem_input.set('<always>')
+        self.selected_tem = '<always>'
+        self.tem_options = ['<always>','<eventually>']
         self.tem_menu = tk.OptionMenu(self.master,self.tem_input,*tuple(self.tem_options),command=self.update_selected_tem)
-        self.tem_menu.place(x=xoff+0,y=yoff+70,width=110)
+        self.tem_menu.place(x=xoff+0,y=yoff+70,width=125)
         be = tk.Label(self.master,text='be')
-        be.place(x=xoff+115,y=yoff+75)
+        be.place(x=xoff+130,y=yoff+75)
         self.rel_input = tk.StringVar(self.master)
-        self.rel_input.set('above')
-        self.selected_rel = 'above'
-        self.rel_options = ['above','below']
+        self.rel_input.set('<above>')
+        self.selected_rel = '<above>'
+        self.rel_options = ['<above>','<below>']
         self.rel_menu = tk.OptionMenu(self.master,self.rel_input,*tuple(self.rel_options),command=self.update_selected_rel)
-        self.rel_menu.place(x=xoff+140,y=yoff+70,width=80)
+        self.rel_menu.place(x=xoff+155,y=yoff+70,width=90)
         self.req_val_entry = tk.Entry(self.master)
-        self.req_val_entry.place(x=xoff+225,y=yoff+75,width=50)
-        fro = tk.Label(self.master,text='from min')
-        fro.place(x=xoff+280,y=yoff+75)
+        self.req_val_entry.place(x=xoff+250,y=yoff+75,width=50)
+        fro = tk.Label(self.master,text='from minute')
+        fro.place(x=xoff+305,y=yoff+75)
         self.req_fro_entry = tk.Entry(self.master)
-        self.req_fro_entry.place(x=xoff+350,y=yoff+75,width=38)
-        to = tk.Label(self.master,text='to min')
-        to.place(x=xoff+395,y=yoff+75)
+        self.req_fro_entry.place(x=xoff+390,y=yoff+75,width=38)
+        to = tk.Label(self.master,text='to minute')
+        to.place(x=xoff+435,y=yoff+75)
         self.req_to_entry = tk.Entry(self.master)
-        self.req_to_entry.place(x=xoff+445,y=yoff+75,width=38)
+        self.req_to_entry.place(x=xoff+505,y=yoff+75,width=38)
         add_req = tk.Button(self.master, text='+', fg='white',bg='green',
                               command=self.add_req)
         add_req.place(x=xoff+600,y=yoff+75,height=20,width=20)
@@ -142,17 +142,17 @@ class Application(tk.Frame):
 
     def refresh_var_dropdown(self):
         self.var_menu.destroy()
-        options = self.varToPath.keys()
+        options = list(self.varToPath.keys())
         if not len(options):
             options = ['']
+        options = ['<{}>'.format(o) for o in options]
         self.var_menu = tk.OptionMenu(self.master,self.var_input,*tuple(options),command=self.update_selected_var)
         self.var_menu.place(x=self.var_menu_loc[0],y=self.var_menu_loc[1],width=200)
 
     def refresh_lab_dropdown(self):
         self.lab_menu.destroy()
-        options = [l+'s' for l in self.labels]
-        if not len(options):
-            options = ['']
+        options = ['<{}s>'.format(l) for l in self.labels]
+        options+=''
         self.lab_menu = tk.OptionMenu(self.master,self.lab_input,*tuple(options),command=self.update_selected_lab)
         self.lab_menu.place(x=self.lab_menu_loc[0],y=self.lab_menu_loc[1],width=200)
 
@@ -210,7 +210,7 @@ class Application(tk.Frame):
         km.place(x=xoff+380,y=yoff+65)
         show_map = tk.Button(self.master, text='Show Map', fg='black',bg='white',
                               command=self.show_map)
-        show_map.place(x=xoff+610,y=yoff+150)
+        show_map.place(x=xoff+610,y=yoff+120)
         labels = tk.Label(self.master,text='Point Of Interests Label')
         labels.place(x=xoff+50,y=yoff+120)
         self.menu_x=xoff+210
@@ -255,8 +255,8 @@ class Application(tk.Frame):
             canvas.create_rectangle(0,0,20,20,fill=hexFormat)
             remove.place(x=cur_x,y=cur_y,height=20,width=20)
             text.place(x=cur_x+22,y=cur_y)
-            canvas.place(x=cur_x+22+len(a)*7.5,y=cur_y,height=20,width=20)
-            cur_x+=22+len(a)*7.5+45
+            canvas.place(x=cur_x+32+len(a)*6.5,y=cur_y,height=20,width=20)
+            cur_x+=32+len(a)*6.5+45
             self.label_list_widgets.extend([remove,text,canvas])
 
     def update_selected_label(self,value):
@@ -331,14 +331,14 @@ class Application(tk.Frame):
         self.refresh_results_list()
 
     def clear_action(self):
-        self.amenity_options = ['school','theatre','hospital']
+        self.amenity_options = ['school','theatre','hospital','restaurant','library','university','parking','bank','cinema','fire_station','prison']
         self.label_options = deepcopy(self.amenity_options)
         self.label_to_nodes = defaultdict(list)
         self.labels = []
         self.varToPath = dict()
         self.label_to_color = dict()
         self.sensor_locs_path = ''
-        self.available_colors = [(255,0,0),(0,255,0),(0,0,255),(255,255,0),(255,0,255),(0,255,255)]
+        self.available_colors = [(255,0,0),(0,255,0),(0,0,255),(255,255,0),(255,0,255),(0,255,255),(127,127,127),(127,127,0),(127,0,127),(0,127,127),(255,127,127)]
         self.reqs = list()
         self.results = list()
         self.refresh_var_list()
@@ -403,7 +403,7 @@ class Application(tk.Frame):
             count+=1
             action = partial(self.remove_req,req)
             remove = tk.Button(self.master,command=action,bg='white',fg='red',text='x')
-            req_text = 'R{}: {}'.format(count,req.req_str)
+            req_text = 'R{}: {}'.format(count,req.pretty_str)
             text = tk.Label(self.master,text=req_text)
             remove.place(x=cur_x,y=cur_y,height=20,width=20)
             text.place(x=cur_x+22,y=cur_y)
@@ -438,6 +438,8 @@ class Application(tk.Frame):
         self.add_results_list()
 
     def add_existing_label(self):
+        if not len(self.selected_label):
+            return
         self.labels.append(self.selected_label)
         self.label_options.remove(self.selected_label)
         self.refresh_label_menu_and_list()
@@ -461,22 +463,28 @@ class AddReqApp(tk.Frame):
     def __init__(self,master,parent):
         super().__init__(master)
         self.master = master
-        self.master.geometry('500x75+100+100')
+        self.master.geometry('500x150+100+100')
         self.parent = parent
         self.create_widgets()
 
     def create_widgets(self):
         self.req_entry = tk.Entry(self.master)
         self.req_entry.place(x=20,y=20,width=400)
+        self.req_entry.insert(0,'Type in SaSTL formula')
+        self.exp_entry = tk.Entry(self.master)
+        self.exp_entry.place(x=20,y=50,width=400)
+        self.exp_entry.insert(0,'Type in explanation')
         add_button = tk.Button(self.master,command=self.add,bg='green',fg='white',text='+')
-        add_button.place(x=430,y=20,height=20,width=20)
+        add_button.place(x=430,y=50,height=20,width=20)
 
     def add(self):
         req = sc_lib.requirement()
         req.set_req_str(self.req_entry.get().strip())
+        req.set_pretty_str(self.exp_entry.get().strip())
         self.parent.reqs.append(req)
         self.parent.refresh_req_list()
         self.req_entry.delete(0,'end')
+        self.exp_entry.delete(0,'end')
 
 class AddLocApp(tk.Frame):
     def __init__(self,master,parent):
