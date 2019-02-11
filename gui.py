@@ -2,6 +2,7 @@ import tkinter as tk
 from functools import partial 
 from copy import deepcopy 
 from collections import defaultdict
+from geopy import geocoders
 import sc_loading
 import sc_plot
 import sc_lib
@@ -296,7 +297,10 @@ class Application(tk.Frame):
         center_point = (0,0)
         if len(coords_entered):
             center_point = tuple([float(s) for s in coords_entered.split(',')])
-            #TODO: allow city entry
+        elif len(city_entered):
+            gn = geocoders.GeoNames(username='elifland')
+            loc = gn.geocode(city_entered)
+            center_point = (loc.latitude,loc.longitude)
         else:
             print('must enter city name or coordinates')
             return None
@@ -327,9 +331,34 @@ class Application(tk.Frame):
         self.refresh_results_list()
 
     def clear_action(self):
-        #TODO
-        print('clear')
-   
+        self.amenity_options = ['school','theatre','hospital']
+        self.label_options = deepcopy(self.amenity_options)
+        self.label_to_nodes = defaultdict(list)
+        self.labels = []
+        self.varToPath = dict()
+        self.label_to_color = dict()
+        self.sensor_locs_path = ''
+        self.available_colors = [(255,0,0),(0,255,0),(0,0,255),(255,255,0),(255,0,255),(0,255,255)]
+        self.reqs = list()
+        self.results = list()
+        self.refresh_var_list()
+        self.refresh_req_list()
+        self.refresh_label_menu_and_list()
+        self.refresh_results_list()
+        self.req_list_widgets = list()
+        self.results_list_widgets = list()
+        self.var_entry.delete(0,'end')
+        self.path_entry.delete(0,'end')
+        self.sensor_entry.delete(0,'end')
+        self.city_entry.delete(0,'end')
+        self.range_entry.delete(0,'end')
+        self.coords_entry.delete(0,'end')
+        self.req_to_entry.delete(0,'end')
+        self.req_fro_entry.delete(0,'end')
+        self.req_range_entry.delete(0,'end')
+        self.req_fro_entry.delete(0,'end')
+        self.req_val_entry.delete(0,'end')
+        
     def set_sensor_locs(self):
         self.sensor_locs_path = self.sensor_entry.get().strip()
 
