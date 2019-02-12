@@ -41,6 +41,13 @@ class Application(tk.Frame):
         reqs.place(x=xoff+10,y=yoff+10)
         self.results_list_x = xoff+50
         self.results_list_y = yoff+40
+        canvas = tk.Canvas(self.master)
+        x_start = self.results_list_x-20 
+        y_start = self.results_list_y-10
+        w = 1000-2*x_start
+        h = 990-y_start
+        canvas.create_rectangle(0,0,w,h,width=10)
+        canvas.place(x=x_start,y=y_start,width=w,height=h)
 
     def create_req_input(self,xoff,yoff):
         reqs = tk.Label(self.master,text='Requirements')
@@ -50,6 +57,13 @@ class Application(tk.Frame):
         self.create_req_dropdown_input(xoff+50,yoff+30)
         self.req_list_x = xoff+50
         self.req_list_y = yoff+150
+        canvas = tk.Canvas(self.master)
+        x_start = self.req_list_x-20 
+        y_start = self.req_list_y-20
+        w = 1000-2*x_start
+        h = 600-y_start
+        canvas.create_rectangle(0,0,w,h,width=10)
+        canvas.place(x=x_start,y=y_start,width=w,height=h)
 
     def create_req_dropdown_input(self,xoff,yoff):
         the = tk.Label(self.master,text='The')
@@ -326,7 +340,7 @@ class Application(tk.Frame):
         for req in self.reqs:
             robustness = checker.check_spec(req.req_str)
             result_str = 'True' if robustness>0 else 'False'
-            result_str += ',Robustness = {}'.format(robustness)
+            result_str += ', Robustness = {}'.format(robustness)
             self.results.append(result_str)
         self.refresh_results_list()
 

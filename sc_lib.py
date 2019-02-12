@@ -236,8 +236,7 @@ class requirement():
             self.req_str += 'E'
         self.req_str += '[{},{}]'.format(fro,to)
         if len(agg):
-            agg = agg[1:-1]
-            self.req_str += '(<{}[{},{}],{}>'.format(agg,0,rang,param[1:-1])
+            self.req_str += '(<{}[{},{}],{}>'.format(agg[1:-1],0,rang,param[1:-1])
         else: 
             self.req_str += '(<{}>'.format(param[1:-1]) 
         if rel == '<above>': 
@@ -250,9 +249,9 @@ class requirement():
         self.pretty_str += param+' '
         my_spatial = spatial.split('/')[0]+'>' if len(label) else '<'+spatial.split('/')[1]
         if len(label):
-            self.pretty_str += 'within {} km of {} {} '.format(rang,my_spatial,label)
+            self.pretty_str += 'within <{}> km of {} {} '.format(rang,my_spatial,label)
         else:
             self.pretty_str += my_spatial+' '
-        self.pretty_str += 'should {} be {} {} from minute {} to minute {}'.format(temporal,rel,val,fro,to)
+        self.pretty_str += 'should {} be {} <{}> from minute <{}> to minute <{}>'.format(temporal,rel,val,fro,to)
 
 
