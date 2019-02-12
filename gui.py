@@ -8,14 +8,16 @@ import sc_plot
 import sc_lib
 import sstl
 
-DEBUG = True
+DEBUG = False
 PARALLEL = True
 
 class Application(tk.Frame):
     def __init__(self, master=None):
         super().__init__(master)
         self.master = master
-        self.master.geometry('1000x1000+700+20')
+        self.HEIGHT=1000
+        self.WIDTH=930
+        self.master.geometry('{}x{}+700+20'.format(self.WIDTH,self.HEIGHT))
         self.amenity_options = ['school','theatre','hospital','restaurant','library','university','parking','bank','cinema','fire_station','prison']
         self.available_colors = [(255,0,0),(0,255,0),(0,0,255),(255,255,0),(255,0,255),(0,255,255),(127,127,127),(127,127,0),(127,0,127),(0,127,127),(255,127,127)]
         self.label_options = deepcopy(self.amenity_options)
@@ -44,8 +46,8 @@ class Application(tk.Frame):
         canvas = tk.Canvas(self.master)
         x_start = self.results_list_x-20 
         y_start = self.results_list_y-10
-        w = 1000-2*x_start
-        h = 990-y_start
+        w = self.WIDTH-2*x_start
+        h = self.HEIGHT-10-y_start
         canvas.create_rectangle(0,0,w,h,width=10)
         canvas.place(x=x_start,y=y_start,width=w,height=h)
 
@@ -60,7 +62,7 @@ class Application(tk.Frame):
         canvas = tk.Canvas(self.master)
         x_start = self.req_list_x-20 
         y_start = self.req_list_y-20
-        w = 1000-2*x_start
+        w = self.WIDTH-2*x_start
         h = 600-y_start
         canvas.create_rectangle(0,0,w,h,width=10)
         canvas.place(x=x_start,y=y_start,width=w,height=h)
