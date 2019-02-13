@@ -15,9 +15,10 @@ class Application(tk.Frame):
     def __init__(self, master=None):
         super().__init__(master)
         self.master = master
+        self.master.title("SaSTL Monitor")
         self.HEIGHT=1000
-        self.WIDTH=930
-        self.master.geometry('{}x{}+700+20'.format(self.WIDTH,self.HEIGHT))
+        self.WIDTH=1850
+        self.master.geometry('{}x{}+0+0'.format(self.WIDTH,self.HEIGHT))
         self.amenity_options = ['school','theatre','hospital','restaurant','library','university','parking','bank','cinema','fire_station','prison']
         self.available_colors = [(255,0,0),(0,255,0),(0,0,255),(255,255,0),(255,0,255),(0,255,255),(127,127,127),(127,127,0),(127,0,127),(0,127,127),(255,127,127)]
         self.label_options = deepcopy(self.amenity_options)
@@ -54,8 +55,8 @@ class Application(tk.Frame):
     def create_req_input(self,xoff,yoff):
         reqs = tk.Label(self.master,text='Requirements')
         reqs.place(x=xoff+10,y=yoff+10)
-        add_req_formula = tk.Button(self.master,bg='black',command=self.add_req_formula)
-        add_req_formula.place(x=xoff+120,y=yoff+10,width=20,height=20)
+        add_req_formula = tk.Button(self.master,bg='white',text='...',command=self.add_req_formula)
+        add_req_formula.place(x=xoff+110,y=yoff+10,width=20,height=20)
         self.create_req_dropdown_input(xoff+50,yoff+30)
         self.req_list_x = xoff+50
         self.req_list_y = yoff+150
@@ -200,7 +201,7 @@ class Application(tk.Frame):
     def create_area_input(self,xoff,yoff):
         areas = tk.Label(self.master,text='Areas')
         areas.place(x=xoff+10,y=yoff+10)
-        add_label = tk.Button(self.master,bg='black',command=self.add_label_action)
+        add_label = tk.Button(self.master,bg='white',text='...',command=self.add_label_action)
         add_label.place(x=xoff+55,y=yoff+10,width=20,height=20)
         clear = tk.Button(self.master, text='Clear', fg='white',bg='gray',
                               command=self.clear_action)
@@ -479,7 +480,8 @@ class AddReqApp(tk.Frame):
     def __init__(self,master,parent):
         super().__init__(master)
         self.master = master
-        self.master.geometry('500x150+100+100')
+        self.master.geometry('500x150+900+300')
+        self.master.title('Add Requirement')
         self.parent = parent
         self.create_widgets()
 
@@ -506,7 +508,8 @@ class AddLocApp(tk.Frame):
     def __init__(self,master,parent):
         super().__init__(master)
         self.master = master
-        self.master.geometry('550x75+100+100')
+        self.master.geometry('550x75+900+150')
+        self.master.title("Add Location")
         self.parent = parent
         self.create_widgets()
 
@@ -540,7 +543,8 @@ class AddLabelApp(tk.Frame):
     def __init__(self,master,parent):
         super().__init__(master)
         self.master = master
-        self.master.geometry('625x125+100+100')
+        self.master.title("Add Label")
+        self.master.geometry('625x125+900+150')
         self.parent = parent
         self.create_widgets()
 
