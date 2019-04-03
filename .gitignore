@@ -10,3 +10,4 @@ concurrent*
 *.out
 *.csv
 *_stats
+*analysis*
