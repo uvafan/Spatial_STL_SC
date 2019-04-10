@@ -1,3 +1,7 @@
+'''
+Eli Lifland
+GUI for checking requirements
+'''
 import tkinter as tk
 from functools import partial 
 from copy import deepcopy 

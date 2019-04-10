@@ -8,6 +8,5 @@ data/aarhus/*
 raw_data/*
 concurrent*
 *.out
-*.csv
 *_stats
 *analysis*

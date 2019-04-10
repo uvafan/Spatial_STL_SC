@@ -1,6 +1,6 @@
 '''
 Eli Lifland
-9/29/2018
+Tool used to run SSTL checks
 '''
 import sys
 import argparse

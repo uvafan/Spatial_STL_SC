@@ -1,7 +1,6 @@
 '''
-Timothy Davison, Eli Lifland
-9/11/18
-Preliminary Model Checking Functions
+Eli Lifland
+SSTL Checking Functionality
 '''
 import sc_lib
 import pandas as pd
